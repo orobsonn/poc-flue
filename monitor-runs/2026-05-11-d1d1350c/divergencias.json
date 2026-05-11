@@ -1,0 +1,29 @@
+[
+  {
+    "decision_id": "d-1778534848853-7",
+    "heuristic_ignored": "## H5 — Score baixo sem sinal compensatório\nSe score objetivo é C AND nenhum dos heurísticos acima se aplica,\n→ descartar,\nporque custo de oportunidade do time supera valor esperado.",
+    "evidence": "priorizar mesmo tier C — sinal forte de intenção compensa fit baixo",
+    "severity": "high",
+    "bucket_key": "priorizar/C/0",
+    "bucket_size": 6,
+    "representatives_audited": 3
+  },
+  {
+    "decision_id": "d-1778534848715-4",
+    "heuristic_ignored": "Se score objetivo é C AND nenhum dos heurísticos acima se aplica,\n→ descartar,\nporque custo de oportunidade do time supera valor esperado.",
+    "evidence": "priorizar mesmo tier C — sinal forte de intenção compensa fit baixo",
+    "severity": "high",
+    "bucket_key": "priorizar/C/0",
+    "bucket_size": 6,
+    "representatives_audited": 3
+  },
+  {
+    "decision_id": "d-1778534847482-2",
+    "heuristic_ignored": "## H6 — Default por tier A\nSe score objetivo é A AND nenhum heurístico acima dispara em sentido contrário (H3 enterprise),\n→ priorizar,\nporque o tier A já refletiu fit estrutural alto na rubrica determinística — só inverter mediante motivo registrado.",
+    "evidence": "descartar mesmo tier A — interlocutor sinalizou descomprometimento na call",
+    "severity": "med",
+    "bucket_key": "descartar/A/0",
+    "bucket_size": 14,
+    "representatives_audited": 3
+  }
+]
