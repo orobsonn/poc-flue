@@ -171,8 +171,9 @@ export default async function (ctx: FlueContext<unknown, Env>): Promise<unknown>
     role: 'auditor-monitor',
   });
 
-  // 6. carrega gabarito + active findings
+  // 6. carrega gabarito + contexto-momento + active findings
   const gabarito = (await fawRead(env.AUDITOR_R2, 'expected-reasoning/qualificador/fit-estrategico.md')) ?? '';
+  const contextoMomento = (await fawRead(env.AUDITOR_R2, 'agents-config/qualificador/contexto-momento.md')) ?? '';
   // active_findings simplificado pra POC — pra MVP, array vazio
   const activeFindings: unknown[] = [];
 
@@ -242,14 +243,14 @@ export default async function (ctx: FlueContext<unknown, Env>): Promise<unknown>
         const sessionId = `classify-${sanitizeId(div.heuristic_ignored)}-${sanitizeId(div.bucket_key)}`;
         const s = await harness.session(sessionId);
         const origin = await s.skill('classify-origin', {
-          args: { divergencia: div, gabarito },
+          args: { divergencia: div, gabarito, contexto_momento: contextoMomento },
           result: ClassifyOriginOutputSchema,
         });
         if (origin.target === 'inconclusive') return { div, origin, suggestion: null };
         const targetFile = targetToFile(origin.target);
         const currentContent = (await fawRead(env.AUDITOR_R2, targetFile)) ?? '';
         const suggestion = await s.skill('suggest-adjustment', {
-          args: { divergencia: { ...div, target: origin.target }, current_content: currentContent },
+          args: { divergencia: { ...div, target: origin.target }, current_content: currentContent, contexto_momento: contextoMomento },
           result: SuggestAdjustmentOutputSchema,
         });
         return { div, origin, suggestion };
