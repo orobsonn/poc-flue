@@ -13,6 +13,7 @@ import {
   detectBudgetBlow,
 } from '@/lib/criteria';
 import { fawRead, fawWrite } from '@/lib/faw';
+import { buildSkillsSandbox } from '@/lib/sandbox';
 import { createPR } from '@/lib/github';
 import { sendTelegramAlert } from '@/lib/telegram';
 import { shouldPromoteToFinding } from '@/lib/promotion';
@@ -114,8 +115,10 @@ export default async function (ctx: FlueContext<unknown, Env>): Promise<unknown>
   const sqlCriteria = await runSqlCriteria(env, agentId, fromTs, toTs);
 
   // 5. setup Flue session (Cenário C — AI Gateway)
+  const sandboxFactory = await buildSkillsSandbox(env.AUDITOR_R2);
   const harness = await ctx.init({
     model: env.MODEL_MAIN ?? 'cloudflare-workers-ai/@cf/meta/llama-4-scout-17b-16e-instruct',
+    sandbox: sandboxFactory,
     providers: {
       'cloudflare-workers-ai': {
         baseUrl: `https://gateway.ai.cloudflare.com/v1/${env.CLOUDFLARE_ACCOUNT_ID}/${env.CLOUDFLARE_AI_GATEWAY_ID}/workers-ai/v1`,
@@ -125,7 +128,6 @@ export default async function (ctx: FlueContext<unknown, Env>): Promise<unknown>
     },
     role: 'auditor-monitor',
   });
-  const session = await harness.session();
 
   // 6. carrega gabarito + active findings
   const gabarito = (await fawRead(env.AUDITOR_R2, 'expected-reasoning/qualificador/fit-estrategico.md')) ?? '';
@@ -149,7 +151,8 @@ export default async function (ctx: FlueContext<unknown, Env>): Promise<unknown>
       const detections = await Promise.all(
         reps.map(async (rep) => {
           try {
-            const data = await session.skill('monitor/detect-divergences', {
+            const s = await harness.session(`detect-${sanitizeId(rep.id)}`);
+            const data = await s.skill('detect-divergences', {
               args: { decision: rep, gabarito, active_findings: activeFindings },
               result: DetectDivergencesOutputSchema,
             });
@@ -189,14 +192,16 @@ export default async function (ctx: FlueContext<unknown, Env>): Promise<unknown>
   const classifications = await Promise.all(
     uniqueDivergences.map(async (div) => {
       try {
-        const origin = await session.skill('monitor/classify-origin', {
+        const sessionId = `classify-${sanitizeId(div.heuristic_ignored)}-${sanitizeId(div.bucket_key)}`;
+        const s = await harness.session(sessionId);
+        const origin = await s.skill('classify-origin', {
           args: { divergencia: div, gabarito },
           result: ClassifyOriginOutputSchema,
         });
         if (origin.target === 'inconclusive') return { div, origin, suggestion: null };
         const targetFile = targetToFile(origin.target);
         const currentContent = (await fawRead(env.AUDITOR_R2, targetFile)) ?? '';
-        const suggestion = await session.skill('monitor/suggest-adjustment', {
+        const suggestion = await s.skill('suggest-adjustment', {
           args: { divergencia: { ...div, target: origin.target }, current_content: currentContent },
           result: SuggestAdjustmentOutputSchema,
         });
@@ -212,7 +217,8 @@ export default async function (ctx: FlueContext<unknown, Env>): Promise<unknown>
   let patterns: v.InferOutput<typeof SummarizePatternsOutputSchema> = { patterns: [], cross_bucket_signal: null };
   if (uniqueDivergences.length > 0) {
     try {
-      patterns = await session.skill('monitor/summarize-patterns', {
+      const s = await harness.session(`summarize-${sanitizeId(runId)}`);
+      patterns = await s.skill('summarize-patterns', {
         args: { divergences: uniqueDivergences, active_findings: activeFindings },
         result: SummarizePatternsOutputSchema,
       });
@@ -366,6 +372,10 @@ function renderProposal(classifications: Array<{ div: { heuristic_ignored: strin
 
 function prBody(input: { runId: string; severity: string; analysis: string; proposal: string }): string {
   return `## Run ${input.runId}\n\nSeveridade: **${input.severity}**\n\n${input.analysis}\n\n---\n\n${input.proposal}\n\n---\n\nArtefatos completos em \`monitor-runs/${input.runId}/\`.`;
+}
+
+function sanitizeId(input: string): string {
+  return input.replace(/[^a-zA-Z0-9-]/g, '-').slice(0, 60);
 }
 
 function hashSeed(input: string): number {
