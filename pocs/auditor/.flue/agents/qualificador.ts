@@ -10,6 +10,7 @@ type Env = {
   MODEL_MAIN?: string;
 };
 
+/** @description Agente qualificador — instanciado, não disparado no loop POC. Aplica rubrica ICP + skill qualificar-lead. */
 export default async function (ctx: FlueContext<unknown, Env>): Promise<unknown> {
   const lead = (ctx.payload ?? {}) as Lead;
   if (!lead.id) {

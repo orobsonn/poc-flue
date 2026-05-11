@@ -11,6 +11,7 @@ type Env = {
   MODEL_MAIN?: string;
 };
 
+/** @description Endpoint sintético — gera N decisions no D1 conforme mode escolhido por hora UTC. */
 export default async function (ctx: FlueContext<unknown, Env>): Promise<unknown> {
   const env = ctx.env;
   const now = new Date();

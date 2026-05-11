@@ -57,13 +57,14 @@ type Candidate = {
   duration_ms: number;
 };
 
+/** @description Agente monitor — orquestrador do pipeline de auditoria. Disparado por POST/cron. */
 export default async function (ctx: FlueContext<unknown, Env>): Promise<unknown> {
   const env = ctx.env;
   const agentId = await pseudonymize('qualificador', env.HMAC_SECRET);
   const runId = `${new Date().toISOString().slice(0, 10)}-${crypto.randomUUID().slice(0, 8)}`;
-  const janelaMs = parseInt(env.JANELA_HORAS) * 3600_000;
-  const k = parseInt(env.BUCKET_K_REPRESENTATIVES);
-  const minSample = parseInt(env.SAMPLE_MIN_PER_BUCKET);
+  const janelaMs = parseInt(env.JANELA_HORAS, 10) * 3600_000;
+  const k = parseInt(env.BUCKET_K_REPRESENTATIVES, 10);
+  const minSample = parseInt(env.SAMPLE_MIN_PER_BUCKET, 10);
 
   // 1. checkpoint
   const lastTsRow = await env.DB
