@@ -289,6 +289,17 @@ export default async function (ctx: FlueContext<unknown, Env>): Promise<unknown>
   await fawWrite(env.AUDITOR_R2, `decisions/${datePrefix}/${runId}/divergencias.json`, divergenciasJson);
 
   // 13. PR + Telegram (se severidade adequada)
+  const summary = buildRunSummary({
+    severity,
+    fromTs,
+    toTs,
+    candidates: candidates.length,
+    bucketEntries,
+    divergencesDetected: uniqueDivergences.length,
+    classifications: classifications.filter(Boolean) as ClassificationResult[],
+    sqlCriteria,
+  });
+
   let prUrl: string | null = null;
   if (severity !== 'info') {
     try {
@@ -296,8 +307,8 @@ export default async function (ctx: FlueContext<unknown, Env>): Promise<unknown>
         { pat: env.GITHUB_PAT, repo: env.GITHUB_REPO, defaultBranch: env.GITHUB_DEFAULT_BRANCH },
         {
           branch: `monitor/${runId}`,
-          title: `monitor: ${severity} em ${agentId}/fit-estrategico (run ${runId})`,
-          body: prBody({ runId, severity, analysis, proposal }),
+          title: prTitle(runId, summary),
+          body: prBody(runId, summary),
           files: [
             { path: `monitor-runs/${runId}/analysis.md`, content: analysis },
             { path: `monitor-runs/${runId}/proposal.md`, content: proposal },
@@ -312,7 +323,7 @@ export default async function (ctx: FlueContext<unknown, Env>): Promise<unknown>
   if (severity === 'critical' && prUrl) {
     await sendTelegramAlert(
       { botToken: env.TELEGRAM_BOT_TOKEN, chatId: env.TELEGRAM_CHAT_ID },
-      `Monitor auditor: ${agentId}/fit-estrategico\nRun ${runId.slice(-8)}\nSeveridade: critical\nPadrões: ${patterns.patterns.length}\nPR: ${prUrl}`,
+      telegramMessage(runId, summary, prUrl),
     );
   }
 
@@ -418,8 +429,148 @@ function renderProposal(classifications: Array<{ div: { heuristic_ignored: strin
   return lines.join('\n');
 }
 
-function prBody(input: { runId: string; severity: string; analysis: string; proposal: string }): string {
-  return `## Run ${input.runId}\n\nSeveridade: **${input.severity}**\n\n${input.analysis}\n\n---\n\n${input.proposal}\n\n---\n\nArtefatos completos em \`monitor-runs/${input.runId}/\`.`;
+const AGENT_LABEL = 'qualificador/fit-estrategico';
+
+type ClassificationResult = {
+  div: {
+    decision_id: string;
+    heuristic_ignored: string;
+    evidence: string;
+    severity: 'low' | 'med' | 'high';
+    bucket_key: string;
+    bucket_size: number;
+    representatives_audited: number;
+  };
+  origin: { target: string; rationale: string };
+  suggestion: { target_file: string; proposed_change: string; rationale: string } | null;
+};
+
+type RunSummary = {
+  severity: 'critical' | 'warn' | 'info';
+  divergencesDetected: number;
+  classifications: ClassificationResult[];
+  candidates: number;
+  bucketCount: number;
+  windowHours: number;
+  topDivergence: ClassificationResult | null;
+  sqlCriteria: SqlCriteriaResult;
+};
+
+/** @description Strip markdown headers/whitespace de um heuristic_ignored cru pra render humano. */
+function humanizeHeuristic(raw: string): string {
+  const firstLine = raw.split('\n')[0]?.trim() ?? raw;
+  return firstLine.replace(/^#+\s*/, '').trim();
+}
+
+/** @description Pega a divergência "principal" — maior severidade desempata por bucket_size. */
+function pickTopDivergence(classifications: ClassificationResult[]): ClassificationResult | null {
+  if (classifications.length === 0) return null;
+  const order = { high: 3, med: 2, low: 1 } as const;
+  return [...classifications].sort((a, b) => {
+    const sevDiff = order[b.div.severity] - order[a.div.severity];
+    if (sevDiff !== 0) return sevDiff;
+    return b.div.bucket_size - a.div.bucket_size;
+  })[0] ?? null;
+}
+
+/** @description Constrói sumário estruturado do run pra alimentar PR + Telegram com lead-first framing. */
+function buildRunSummary(input: {
+  severity: 'critical' | 'warn' | 'info';
+  fromTs: number;
+  toTs: number;
+  candidates: number;
+  bucketEntries: Array<[string, unknown[]]>;
+  divergencesDetected: number;
+  classifications: ClassificationResult[];
+  sqlCriteria: SqlCriteriaResult;
+}): RunSummary {
+  return {
+    severity: input.severity,
+    divergencesDetected: input.divergencesDetected,
+    classifications: input.classifications,
+    candidates: input.candidates,
+    bucketCount: input.bucketEntries.length,
+    windowHours: Math.round((input.toTs - input.fromTs) / 3600_000),
+    topDivergence: pickTopDivergence(input.classifications),
+    sqlCriteria: input.sqlCriteria,
+  };
+}
+
+/** @description Mensagem Telegram — direta, lead-first, sem markdown pesado. */
+function telegramMessage(runId: string, s: RunSummary, prUrl: string): string {
+  const lines = [
+    `[${s.severity.toUpperCase()}] auditor • ${AGENT_LABEL}`,
+    '',
+    `${s.divergencesDetected} divergência${s.divergencesDetected === 1 ? '' : 's'} em ${s.candidates} decisões (janela ${s.windowHours}h, ${s.bucketCount} bucket${s.bucketCount === 1 ? '' : 's'} ativo${s.bucketCount === 1 ? '' : 's'})`,
+  ];
+  if (s.topDivergence) {
+    const d = s.topDivergence.div;
+    lines.push('', `Principal: ${humanizeHeuristic(d.heuristic_ignored)} (${d.severity}) em ${d.bucket_size} decisões do bucket ${d.bucket_key}`);
+    lines.push(`Evidência: "${d.evidence}"`);
+  } else if (s.divergencesDetected > 0) {
+    lines.push('', `(classificação de origem falhou para todas as divergências — ver PR pra detalhes brutos)`);
+  }
+  lines.push('', `PR: ${prUrl}`, `Run: ${runId}`);
+  return lines.join('\n');
+}
+
+/** @description Title do PR — ação + número + label do agente, max ~70 chars. */
+function prTitle(runId: string, s: RunSummary): string {
+  return `auditor[${s.severity}]: ${s.divergencesDetected} divergência${s.divergencesDetected === 1 ? '' : 's'} em ${AGENT_LABEL} (run ${runId.slice(-8)})`;
+}
+
+/** @description Body do PR — TL;DR, divergências em linguagem humana, critérios SQL, run metadata. */
+function prBody(runId: string, s: RunSummary): string {
+  const sqlRows = [
+    ['out_of_scope_growth', s.sqlCriteria.out_of_scope_growth.triggered ? 'triggered' : 'ok', s.sqlCriteria.out_of_scope_growth.delta_pp !== undefined ? `${s.sqlCriteria.out_of_scope_growth.delta_pp.toFixed(1)}pp` : '-'],
+    ['regression', s.sqlCriteria.regression.triggered ? 'triggered' : 'ok', s.sqlCriteria.regression.delta_pct !== undefined ? `${(s.sqlCriteria.regression.delta_pct * 100).toFixed(1)}%` : '-'],
+    ['budget_blow', s.sqlCriteria.budget_blow.triggered ? 'triggered' : 'ok', s.sqlCriteria.budget_blow.delta_pct !== undefined ? `${(s.sqlCriteria.budget_blow.delta_pct * 100).toFixed(1)}%` : '-'],
+  ];
+
+  const tldr = s.topDivergence
+    ? `${s.divergencesDetected} divergência${s.divergencesDetected === 1 ? '' : 's'} em ${s.candidates} decisões da janela de ${s.windowHours}h. Severidade **${s.severity}**. Principal: ${humanizeHeuristic(s.topDivergence.div.heuristic_ignored)} ignorado em ${s.topDivergence.div.bucket_size} decisões do bucket \`${s.topDivergence.div.bucket_key}\`.`
+    : s.divergencesDetected > 0
+      ? `${s.divergencesDetected} divergência${s.divergencesDetected === 1 ? '' : 's'} detectada${s.divergencesDetected === 1 ? '' : 's'} em ${s.candidates} decisões, mas a classificação de origem falhou (LLM não respondeu no contrato esperado). Severidade **${s.severity}** — ver \`divergencias.json\` no run pra detalhes brutos.`
+      : `Sem divergências detectadas pela skill, mas critérios SQL dispararam — severidade **${s.severity}**.`;
+
+  const divLines: string[] = ['## Divergências encontradas', ''];
+  if (s.classifications.length === 0 && s.divergencesDetected === 0) {
+    divLines.push('_Nenhuma divergência detectada pela LLM neste run. Severidade vem dos critérios SQL abaixo._', '');
+  } else if (s.classifications.length === 0) {
+    divLines.push(`_${s.divergencesDetected} divergência(s) bruta(s) detectada(s) — classify-origin falhou em todas. Conteúdo cru em \`monitor-runs/${runId}/divergencias.json\`._`, '');
+  } else {
+    s.classifications.forEach((c, i) => {
+      divLines.push(`### ${i + 1}. ${humanizeHeuristic(c.div.heuristic_ignored)} (severity: ${c.div.severity})`);
+      divLines.push(`- **Bucket**: \`${c.div.bucket_key}\` — ${c.div.bucket_size} decisões afetadas, ${c.div.representatives_audited} auditadas`);
+      divLines.push(`- **Evidência (reasoned do agente)**: "${c.div.evidence}"`);
+      divLines.push(`- **Origem**: \`${c.origin.target}\` — ${c.origin.rationale}`);
+      if (c.suggestion) {
+        divLines.push(`- **Ajuste sugerido em** \`${c.suggestion.target_file}\`:`);
+        divLines.push('', '> ' + c.suggestion.proposed_change.split('\n').join('\n> '), '');
+        divLines.push(`  _Rationale_: ${c.suggestion.rationale}`);
+      } else {
+        divLines.push('- **Sugestão**: _origem inconclusiva, sem ajuste proposto_');
+      }
+      divLines.push('');
+    });
+  }
+
+  return [
+    '## TL;DR', '', tldr, '',
+    divLines.join('\n'),
+    '## Critérios SQL', '',
+    '| Critério | Status | Δ vs janela anterior |',
+    '| --- | --- | --- |',
+    ...sqlRows.map((r) => `| ${r[0]} | ${r[1]} | ${r[2]} |`),
+    '',
+    '## Metadata do run', '',
+    `- Run ID: \`${runId}\``,
+    `- Janela: ${s.windowHours}h`,
+    `- Candidatos avaliados: ${s.candidates}`,
+    `- Buckets ativos: ${s.bucketCount}`,
+    '',
+    `Artefatos completos em \`monitor-runs/${runId}/\` (analysis.md, proposal.md, divergencias.json).`,
+  ].join('\n');
 }
 
 /** @description Mapeia row plana do JOIN decision_log×lead pra Candidate com lead aninhado. */
