@@ -12,8 +12,9 @@ const BASE = process.env.BASE_URL ?? 'http://localhost:3583';
  * distintas (o run anterior vira baseline do próximo).
  */
 async function main(): Promise<void> {
+  const ts = Date.now();
   console.log('1. Populando baseline (janela anterior)...');
-  const r1 = await fetch(`${BASE}/agents/qualificador-generator`, {
+  const r1 = await fetch(`${BASE}/agents/qualificador-generator/seed-baseline-${ts}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: '{}',
@@ -24,7 +25,7 @@ async function main(): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 1000));
 
   console.log('2. Populando janela atual...');
-  const r2 = await fetch(`${BASE}/agents/qualificador-generator`, {
+  const r2 = await fetch(`${BASE}/agents/qualificador-generator/seed-current-${ts}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: '{}',

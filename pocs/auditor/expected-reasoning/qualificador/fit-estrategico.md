@@ -26,3 +26,13 @@ porque sinal forte de intenção compensa fit médio em janela de aprendizado.
 Se score objetivo é C AND nenhum dos heurísticos acima se aplica,
 → descartar,
 porque custo de oportunidade do time supera valor esperado.
+
+## H6 — Default por tier A
+Se score objetivo é A AND nenhum heurístico acima dispara em sentido contrário (H3 enterprise),
+→ priorizar,
+porque o tier A já refletiu fit estrutural alto na rubrica determinística — só inverter mediante motivo registrado.
+
+## H7 — Default por tier B
+Se score objetivo é B AND nenhum heurístico acima dispara,
+→ manter,
+porque tier B é fit médio — manter mantém opcionalidade sem queimar capacidade.
