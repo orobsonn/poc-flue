@@ -1,0 +1,31 @@
+name = "gabarito"
+main = "dist/_entry.ts"
+compatibility_date = "2026-05-11"
+compatibility_flags = ["nodejs_compat"]
+
+[ai]
+binding = "AI"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "gabarito-poc"
+database_id = "2af3535c-0dc0-45d4-8886-5ed0678bc444"
+
+[[r2_buckets]]
+binding = "MONITOR_R2"
+bucket_name = "gabarito-monitor"
+
+[triggers]
+crons = [
+  "*/15 * * * *",
+  "0 */6 * * *",
+]
+
+[vars]
+MODEL_MAIN = "cloudflare-workers-ai/@cf/meta/llama-4-scout-17b-16e-instruct"
+JANELA_HORAS = "6"
+BUCKET_K_REPRESENTATIVES = "3"
+SAMPLE_MIN_PER_BUCKET = "5"
+WINDOWS_SILENT_TO_RESOLVE = "2"
+DAYS_ACTIVE_TO_STALE = "30"
+GITHUB_DEFAULT_BRANCH = "main"
