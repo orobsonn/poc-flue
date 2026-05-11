@@ -51,7 +51,7 @@ export async function generateRun(
       has_out_of_scope: (decision.out_of_scope ? 1 : 0) as 0 | 1,
     } as const;
 
-    const piiResult = defendPII(candidate);
+    const piiResult = defendPII(candidate, ['reasoned', 'out_of_scope']);
     if (!piiResult.ok) {
       await env.DB.prepare(
         'INSERT INTO decision_log_rejected (id, ts, reason, rejected_by_layer) VALUES (?, ?, ?, ?)',
