@@ -29,3 +29,5 @@ main().catch((err) => {
   console.error('SMOKE FAIL:', err);
   process.exit(1);
 });
+
+export {};
