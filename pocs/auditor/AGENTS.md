@@ -1,6 +1,6 @@
-# gabarito
+# auditor
 
-Monitor autônomo de agentes em domínio de julgamento.
+Agente que avalia outro agente em domínio de julgamento e propõe ajustes via PR.
 
 Princípios globais aplicáveis a TODOS os agentes:
 

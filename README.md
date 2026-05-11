@@ -7,7 +7,7 @@ Cada POC explora uma primitiva do design de agentes em domínio aplicado.
 
 | Nome | Descrição | Status |
 |---|---|---|
-| [gabarito](./pocs/gabarito/) | Avaliador autônomo de agentes em domínio de julgamento | em desenvolvimento |
+| [auditor](./pocs/auditor/) | Agente que avalia outro agente e propõe ajustes via PR | em desenvolvimento |
 
 ## Estrutura
 

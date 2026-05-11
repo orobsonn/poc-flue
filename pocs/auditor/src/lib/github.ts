@@ -76,7 +76,7 @@ async function ghFetch(
       Authorization: `Bearer ${cfg.pat}`,
       Accept: 'application/vnd.github+json',
       'Content-Type': 'application/json',
-      'User-Agent': 'gabarito-monitor',
+      'User-Agent': 'auditor-poc',
     },
     body: opts.body ? JSON.stringify(opts.body) : undefined,
     signal: AbortSignal.timeout(10_000),

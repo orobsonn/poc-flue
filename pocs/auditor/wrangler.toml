@@ -1,4 +1,4 @@
-name = "gabarito"
+name = "auditor"
 main = "dist/_entry.ts"
 compatibility_date = "2026-05-11"
 compatibility_flags = ["nodejs_compat"]
@@ -8,12 +8,12 @@ binding = "AI"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "gabarito-poc"
-database_id = "2af3535c-0dc0-45d4-8886-5ed0678bc444"
+database_name = "auditor"
+database_id = "b438f664-3527-477b-bfb6-298698af5e28"
 
 [[r2_buckets]]
-binding = "MONITOR_R2"
-bucket_name = "gabarito-monitor"
+binding = "AUDITOR_R2"
+bucket_name = "auditor"
 
 [triggers]
 crons = [
