@@ -61,12 +61,20 @@ export function simulateDecision(
 
   const ignoreH1 = isFundadorTecnico && random() < mode.ignore_h1_probability;
   const ignoreH2 = mencionaDor && random() < mode.ignore_h2_probability;
+  const flipFires =
+    (tier === 'A' || tier === 'C') && random() < mode.flip_against_tier_probability;
   const declareOoS = random() < mode.out_of_scope_probability;
 
   let outcome: JudgmentOutcome;
   let reasoned: string;
 
-  if (isFundadorTecnico && !ignoreH1 && tier !== 'C') {
+  if (flipFires) {
+    outcome = tier === 'A' ? 'descartar' : 'priorizar';
+    reasoned =
+      tier === 'A'
+        ? 'descartar mesmo tier A — interlocutor sinalizou descomprometimento na call'
+        : 'priorizar mesmo tier C — sinal forte de intenção compensa fit baixo';
+  } else if (isFundadorTecnico && !ignoreH1 && tier !== 'C') {
     outcome = 'priorizar';
     reasoned = `priorizar porque fundador técnico em fase de produto → feedback acelera roadmap (H1)`;
   } else if (mencionaDor && !ignoreH2) {
