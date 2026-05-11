@@ -147,7 +147,8 @@ export default async function (ctx: FlueContext<unknown, Env>): Promise<unknown>
               result: DetectDivergencesOutputSchema,
             });
             return { rep, data };
-          } catch {
+          } catch (err) {
+            console.error(JSON.stringify({ op: 'detect-divergences', err: err instanceof Error ? err.message : String(err), rep_id: rep.id }));
             return null;
           }
         }),
@@ -193,7 +194,8 @@ export default async function (ctx: FlueContext<unknown, Env>): Promise<unknown>
           result: SuggestAdjustmentOutputSchema,
         });
         return { div, origin, suggestion };
-      } catch {
+      } catch (err) {
+        console.error(JSON.stringify({ op: 'classify+suggest', err: err instanceof Error ? err.message : String(err), bucket_key: div.bucket_key, heuristic: div.heuristic_ignored }));
         return null;
       }
     }),
@@ -207,8 +209,8 @@ export default async function (ctx: FlueContext<unknown, Env>): Promise<unknown>
         args: { divergences: uniqueDivergences, active_findings: activeFindings },
         result: SummarizePatternsOutputSchema,
       });
-    } catch {
-      /* ignore */
+    } catch (err) {
+      console.error(JSON.stringify({ op: 'summarize-patterns', err: err instanceof Error ? err.message : String(err) }));
     }
   }
 
