@@ -16,6 +16,7 @@ import { fawRead, fawWrite } from '@/lib/faw';
 import { createPR } from '@/lib/github';
 import { sendTelegramAlert } from '@/lib/telegram';
 import { shouldPromoteToFinding } from '@/lib/promotion';
+import { pseudonymize } from '@/lib/hmac';
 
 export const triggers = { webhook: true };
 
@@ -52,7 +53,7 @@ type Candidate = {
 
 export default async function (ctx: FlueContext<unknown, Env>): Promise<unknown> {
   const env = ctx.env;
-  const agentId = 'qualificador';
+  const agentId = await pseudonymize('qualificador', env.HMAC_SECRET);
   const runId = `${new Date().toISOString().slice(0, 10)}-${crypto.randomUUID().slice(0, 8)}`;
   const janelaMs = parseInt(env.JANELA_HORAS) * 3600_000;
   const k = parseInt(env.BUCKET_K_REPRESENTATIVES);
