@@ -39,6 +39,12 @@ type Env = {
   SAMPLE_MIN_PER_BUCKET: string;
 };
 
+type SqlCriteriaResult = {
+  out_of_scope_growth: { triggered: boolean; delta_pp?: number };
+  regression: { triggered: boolean; delta_pct?: number };
+  budget_blow: { triggered: boolean; delta_pct?: number };
+};
+
 type Candidate = {
   id: string;
   did: string;
@@ -279,7 +285,7 @@ function targetToFile(target: 'prompt-issue' | 'gabarito-stale' | 'criterio-falt
   }
 }
 
-async function runSqlCriteria(env: Env, agentId: string, fromTs: number, toTs: number) {
+async function runSqlCriteria(env: Env, agentId: string, fromTs: number, toTs: number): Promise<SqlCriteriaResult> {
   const window = await env.DB.prepare(
     `SELECT
        AVG(cost_usd) as avg_cost,
@@ -310,7 +316,7 @@ async function runSqlCriteria(env: Env, agentId: string, fromTs: number, toTs: n
 
 function computeSeverity(
   patterns: v.InferOutput<typeof SummarizePatternsOutputSchema>,
-  sql: { out_of_scope_growth: { triggered: boolean }; regression: { triggered: boolean }; budget_blow: { triggered: boolean } },
+  sql: SqlCriteriaResult,
   maxBucketSize: number,
 ): 'critical' | 'warn' | 'info' {
   if (patterns.cross_bucket_signal) return 'critical';
@@ -332,10 +338,16 @@ function renderAnalysis(input: {
   toTs: number;
   candidates: number;
   bucketEntries: Array<[string, unknown[]]>;
-  sqlCriteria: ReturnType<typeof Object>;
+  sqlCriteria: SqlCriteriaResult;
   severity: string;
 }): string {
-  return `# Run ${input.runId}\n\nWindow: ${new Date(input.fromTs).toISOString()} → ${new Date(input.toTs).toISOString()}\n\nCandidatos: ${input.candidates}\nBuckets ativos: ${input.bucketEntries.length}\nSeveridade: **${input.severity}**\n`;
+  const sql = input.sqlCriteria;
+  const sqlLines = [
+    `- out_of_scope_growth: ${sql.out_of_scope_growth.triggered ? 'triggered' : 'ok'}${sql.out_of_scope_growth.delta_pp !== undefined ? ` (Δ ${sql.out_of_scope_growth.delta_pp.toFixed(1)}pp)` : ''}`,
+    `- regression: ${sql.regression.triggered ? 'triggered' : 'ok'}${sql.regression.delta_pct !== undefined ? ` (Δ ${(sql.regression.delta_pct * 100).toFixed(1)}%)` : ''}`,
+    `- budget_blow: ${sql.budget_blow.triggered ? 'triggered' : 'ok'}${sql.budget_blow.delta_pct !== undefined ? ` (Δ ${(sql.budget_blow.delta_pct * 100).toFixed(1)}%)` : ''}`,
+  ].join('\n');
+  return `# Run ${input.runId}\n\nWindow: ${new Date(input.fromTs).toISOString()} → ${new Date(input.toTs).toISOString()}\n\nCandidatos: ${input.candidates}\nBuckets ativos: ${input.bucketEntries.length}\nSeveridade: **${input.severity}**\n\n## Critérios SQL\n${sqlLines}\n`;
 }
 
 function renderProposal(classifications: Array<{ div: { heuristic_ignored: string }; origin: { target: string; rationale: string }; suggestion: { target_file: string; proposed_change: string; rationale: string } | null }>): string {
