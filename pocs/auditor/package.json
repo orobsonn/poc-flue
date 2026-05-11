@@ -14,7 +14,8 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "smoke": "tsx scripts/smoke.ts",
-    "replay": "tsx scripts/replay.ts"
+    "replay": "tsx scripts/replay.ts",
+    "sync-skills": "tsx scripts/sync-skills-to-r2.ts"
   },
   "dependencies": {
     "@flue/sdk": "^0.3.11",
