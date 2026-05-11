@@ -14,6 +14,7 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "smoke": "tsx scripts/smoke.ts",
+    "seed-baseline": "tsx scripts/seed-baseline.ts",
     "replay": "tsx scripts/replay.ts",
     "sync-skills": "tsx scripts/sync-skills-to-r2.ts"
   },

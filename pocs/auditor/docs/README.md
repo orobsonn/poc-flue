@@ -12,8 +12,11 @@ cp ../../.dev.vars.example ../../.dev.vars  # preencher na raiz do monorepo
 npx wrangler d1 execute auditor --local --file=migrations/0001_init.sql
 npm run dev
 # em outra aba:
+npm run seed-baseline   # opcional na 1ª execução: dispara gerador 2× pra popular janela anterior + atual
 npm run smoke
 ```
+
+> `seed-baseline` é útil antes do **primeiro** monitor: sem janela anterior populada, `runSqlCriteria` retorna baselines zeradas e o pipeline não detecta regressões. Em sessões subsequentes não é necessário — o run anterior vira a baseline natural.
 
 ## Estrutura
 Veja `docs/ARCHITECTURE.md`.
