@@ -1,0 +1,30 @@
+name: auditor — Sync expected-reasoning to R2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'pocs/auditor/expected-reasoning/**'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: pocs/auditor
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install wrangler
+        run: npm install -g wrangler
+      - name: Sync expected-reasoning to R2
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          for file in $(find expected-reasoning -name "*.md"); do
+            wrangler r2 object put "auditor/${file}" --file="${file}" --remote
+          done
