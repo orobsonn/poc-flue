@@ -16,7 +16,7 @@
     "smoke": "tsx scripts/smoke.ts",
     "seed-baseline": "tsx scripts/seed-baseline.ts",
     "replay": "tsx scripts/replay.ts",
-    "sync-skills": "tsx scripts/sync-skills-to-r2.ts"
+    "sync-r2": "tsx scripts/sync-r2.ts"
   },
   "dependencies": {
     "@flue/sdk": "^0.3.11",
