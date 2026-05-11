@@ -1,0 +1,22 @@
+[
+  { "id": "L01", "nome_empresa": "EduPro", "segmento": "infoprodutor", "faturamento_mensal": "120k", "time_vendas": "dedicado", "ferramentas": "crm", "sinal": "demo", "contexto_livre": "fundador é dev solo escalando, fala de dor de qualificação manual" },
+  { "id": "L02", "nome_empresa": "AgenciaAlpha", "segmento": "agência de marketing", "faturamento_mensal": "200k", "time_vendas": "dedicado", "ferramentas": "crm", "sinal": "demo", "contexto_livre": "agência grande com processo definido" },
+  { "id": "L03", "nome_empresa": "SaasBeta", "segmento": "SaaS B2B", "faturamento_mensal": "300k", "time_vendas": "dedicado", "ferramentas": "crm", "sinal": "form", "contexto_livre": "CTO mencionou interesse em explicabilidade" },
+  { "id": "L04", "nome_empresa": "CursoY", "segmento": "infoprodutor", "faturamento_mensal": "80k", "time_vendas": "dedicado", "ferramentas": "crm", "sinal": "demo", "contexto_livre": "lançamento perpetuo consolidado" },
+  { "id": "L05", "nome_empresa": "MarketingZ", "segmento": "agência de marketing", "faturamento_mensal": "150k", "time_vendas": "dedicado", "ferramentas": "crm", "sinal": "demo", "contexto_livre": "time de growth pleno" },
+  { "id": "L06", "nome_empresa": "EduMaster", "segmento": "infoprodutor", "faturamento_mensal": "100k", "time_vendas": "dedicado", "ferramentas": "crm", "sinal": "demo", "contexto_livre": "operação tradicional" },
+  { "id": "L07", "nome_empresa": "FreelaJP", "segmento": "outro", "faturamento_mensal": "10k", "time_vendas": "solo", "ferramentas": "planilha", "sinal": "material", "contexto_livre": "freelancer começando" },
+  { "id": "L08", "nome_empresa": "MicroLoja", "segmento": "ecommerce", "faturamento_mensal": "5k", "time_vendas": "solo", "ferramentas": "planilha", "sinal": "material", "contexto_livre": "loja pequena curiosa" },
+  { "id": "L09", "nome_empresa": "Estudante1", "segmento": "outro", "faturamento_mensal": "0", "time_vendas": null, "ferramentas": "planilha", "sinal": "material", "contexto_livre": "estudante pesquisando" },
+  { "id": "L10", "nome_empresa": "MeiBlog", "segmento": "outro", "faturamento_mensal": "3k", "time_vendas": "solo", "ferramentas": "planilha", "sinal": "material", "contexto_livre": "blogueiro testando ferramentas" },
+  { "id": "L11", "nome_empresa": "ConsultorX", "segmento": "outro", "faturamento_mensal": "8k", "time_vendas": "solo", "ferramentas": "planilha", "sinal": "form", "contexto_livre": "consultor solo sem time" },
+  { "id": "L12", "nome_empresa": "MicroSaaS", "segmento": "outro", "faturamento_mensal": "12k", "time_vendas": "solo", "ferramentas": "planilha", "sinal": "material", "contexto_livre": "indie hacker explorando" },
+  { "id": "L13", "nome_empresa": "TechStart", "segmento": "SaaS B2B", "faturamento_mensal": "60k", "time_vendas": "solo", "ferramentas": "crm", "sinal": "form", "contexto_livre": "fundador técnico solo, dor de qualificação" },
+  { "id": "L14", "nome_empresa": "EduFlow", "segmento": "infoprodutor", "faturamento_mensal": "45k", "time_vendas": "dedicado", "ferramentas": "planilha", "sinal": "demo", "contexto_livre": "infoprodutora ascendente" },
+  { "id": "L15", "nome_empresa": "MegaCorp", "segmento": "SaaS B2B", "faturamento_mensal": "5M", "time_vendas": "dedicado", "ferramentas": "crm", "sinal": "form", "contexto_livre": "enterprise com 200 usuários" },
+  { "id": "L16", "nome_empresa": "AgenciaSmall", "segmento": "agência de marketing", "faturamento_mensal": "40k", "time_vendas": "dedicado", "ferramentas": "planilha", "sinal": "demo", "contexto_livre": "agência crescendo" },
+  { "id": "L17", "nome_empresa": "DevShop", "segmento": "SaaS B2B", "faturamento_mensal": "70k", "time_vendas": "dedicado", "ferramentas": "crm", "sinal": "material", "contexto_livre": "fundador técnico cético" },
+  { "id": "L18", "nome_empresa": "CourseFlow", "segmento": "infoprodutor", "faturamento_mensal": "90k", "time_vendas": "solo", "ferramentas": "crm", "sinal": "form", "contexto_livre": "menciona dor específica de explicabilidade do agente" },
+  { "id": "L19", "nome_empresa": "InfoMid", "segmento": "infoprodutor", "faturamento_mensal": "55k", "time_vendas": null, "ferramentas": null, "sinal": "demo", "contexto_livre": "lead novo sem dados completos" },
+  { "id": "L20", "nome_empresa": "AgYoung", "segmento": "agência de marketing", "faturamento_mensal": "65k", "time_vendas": "dedicado", "ferramentas": null, "sinal": "form", "contexto_livre": "agência jovem crescendo rápido" }
+]
