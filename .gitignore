@@ -7,3 +7,8 @@ dist/
 .DS_Store
 .env
 .env.local
+
+# Claude Code
+.claude/settings.local.json
+.claude/plans/current.md
+.claude/plans/*.local.md

@@ -1,0 +1,5 @@
+# .claude/ — gitignore relativo a essa pasta
+settings.local.json
+plans/current.md
+plans/*.local.md
+*.local.md
