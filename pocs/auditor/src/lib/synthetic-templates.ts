@@ -20,15 +20,18 @@ export type SimulatedDecision = {
   cost_usd: number;
 };
 
+function parseFaturamentoK(raw: string): number {
+  const num = parseInt(raw.replace(/\D/g, ''), 10);
+  if (Number.isNaN(num)) return 0;
+  const isMilhao = /M/.test(raw);
+  return isMilhao ? num * 1000 : num;
+}
+
 /** @description Aplica rubrica determinística pra calcular tier objetivo do lead. */
 export function applyRubrica(lead: Lead): { score: number; tier: ObjectiveTier } {
   let score = 0;
   if (['infoprodutor', 'agência de marketing', 'SaaS B2B'].includes(lead.segmento)) score += 30;
-  // simplificado pra POC: assume número parsed se possível
-  if (lead.faturamento_mensal.includes('k') || lead.faturamento_mensal.includes('M')) {
-    const num = parseInt(lead.faturamento_mensal.replace(/\D/g, ''));
-    if (num >= 50) score += 25;
-  }
+  if (parseFaturamentoK(lead.faturamento_mensal) >= 50) score += 25;
   if (lead.time_vendas === 'dedicado') score += 20;
   if (lead.ferramentas === 'crm') score += 15;
   if (lead.sinal === 'demo' || lead.sinal === 'form') score += 10;
