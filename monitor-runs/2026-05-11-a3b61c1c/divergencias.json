@@ -1,0 +1,20 @@
+[
+  {
+    "decision_id": "d-1778534847482-2",
+    "heuristic_ignored": "Se score objetivo é A AND nenhum heurístico acima dispara em sentido contrário (H3 enterprise), → priorizar, porque o tier A já refletiu fit estrutural alto na rubrica determinística — só inverter mediante motivo registrado.",
+    "evidence": "descartar mesmo tier A — interlocutor sinalizou descomprometimento na call",
+    "severity": "high",
+    "bucket_key": "descartar/A/0",
+    "bucket_size": 13,
+    "representatives_audited": 3
+  },
+  {
+    "decision_id": "d-1778534848721-9",
+    "heuristic_ignored": "## H6 — Default por tier A\nSe score objetivo é A AND nenhum heurístico acima dispara em sentido contrário (H3 enterprise),\n→ priorizar,\nporque o tier A já refletiu fit estrutural alto na rubrica determinística — só inverter mediante motivo registrado.",
+    "evidence": "descartar mesmo tier A — interlocutor sinalizou descomprometimento na call",
+    "severity": "high",
+    "bucket_key": "descartar/A/0",
+    "bucket_size": 13,
+    "representatives_audited": 3
+  }
+]
