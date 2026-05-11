@@ -2,6 +2,7 @@ import type { FlueContext } from '@flue/sdk/client';
 import { QualificarLeadOutputSchema } from '@/schemas/skills';
 import { applyRubrica, type Lead } from '@/lib/synthetic-templates';
 import { fawRead } from '@/lib/faw';
+import { buildSkillsSandbox } from '@/lib/sandbox';
 
 export const triggers = { webhook: true };
 
@@ -19,8 +20,10 @@ export default async function (ctx: FlueContext<unknown, Env>): Promise<unknown>
 
   const { tier } = applyRubrica(lead);
 
+  const sandboxFactory = await buildSkillsSandbox(ctx.env.AUDITOR_R2);
   const harness = await ctx.init({
     model: ctx.env.MODEL_MAIN ?? 'cloudflare-workers-ai/@cf/meta/llama-4-scout-17b-16e-instruct',
+    sandbox: sandboxFactory,
     role: 'qualificador-sdr',
   });
   const session = await harness.session();
