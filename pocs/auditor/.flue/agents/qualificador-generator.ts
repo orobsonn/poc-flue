@@ -1,0 +1,27 @@
+import type { FlueContext } from '@flue/sdk/client';
+import { generateRun, pickModeForHour } from '@/lib/synthetic-generator';
+import leads from '../../fixtures/leads.json';
+import scenarios from '../../fixtures/scenarios.json';
+
+export const triggers = { webhook: true };
+
+type Env = {
+  DB: D1Database;
+  HMAC_SECRET: string;
+  MODEL_MAIN?: string;
+};
+
+export default async function (ctx: FlueContext<unknown, Env>): Promise<unknown> {
+  const env = ctx.env;
+  const now = new Date();
+  const hour = now.getUTCHours();
+  const mode = pickModeForHour(scenarios as Array<{ from_hour: number; to_hour: number; mode: 'baseline' | 'drift-h1' | 'drift-multi' | 'high-budget' }>, hour);
+  const result = await generateRun(
+    env,
+    leads as Parameters<typeof generateRun>[1],
+    mode,
+    env.MODEL_MAIN ?? 'cloudflare-workers-ai/@cf/meta/llama-4-scout-17b-16e-instruct',
+    10,
+  );
+  return { mode, ...result };
+}
