@@ -21,7 +21,8 @@ LLM via AI Gateway (`poc-flue`) com modelo default `cloudflare-workers-ai/@cf/op
 - `npm run typecheck` — `tsc --noEmit`
 - `npm run smoke` — `tsx scripts/smoke.ts` (smoke ponta-a-ponta)
 - `npm run replay` — `tsx scripts/replay.ts` (POC simplificado)
-- `npm run sync-skills` — `tsx scripts/sync-skills-to-r2.ts` (espelha `.flue/skills/` pro R2 sob `.agents/skills/`)
+- `npm run sync-r2` — `tsx scripts/sync-r2.ts` (espelha `.flue/skills/`, `expected-reasoning/` e `agents-config/` pro R2)
+- `npm run seed-baseline` — `tsx scripts/seed-baseline.ts` (dispara o gerador 2× pra popular janela anterior antes do primeiro monitor)
 
 ## Verificacoes locais (rodar antes de commit/PR)
 ```bash
@@ -66,7 +67,7 @@ pocs/auditor/
 ├── fixtures/               # leads sinteticos + cenarios
 ├── migrations/             # 0001_init.sql (D1: decision_log + rejected + audit_run)
 ├── monitor-runs/           # artefatos de execucao (gitignored)
-├── scripts/                # smoke, replay, sync-skills-to-r2
+├── scripts/                # smoke, seed-baseline, replay, sync-r2
 ├── src/
 │   ├── lib/                # bucketing, criteria, faw, github, hmac, pii, promotion, resolution, sandbox, synthetic-*, telegram
 │   └── schemas/            # decision-log, pii, skills (valibot)

@@ -1,6 +1,6 @@
 ---
 name: suggest-adjustment
-description: Gera texto de mudança proposta para um arquivo target específico baseado em divergência classificada. Use sempre que receber uma divergência com origem já classificada — o output é texto livre da sugestão, NÃO diff (humano edita no PR). Skip se o target for unknown ou inconclusive.
+description: Gera texto de mudança proposta para um arquivo target específico baseado em divergência classificada. Recebe agora `contexto_momento` como insumo extra para grounding da sugestão no estado atual de negócio (fase, capacidade, foco). Use sempre que receber uma divergência com origem já classificada — o output é texto livre da sugestão, NÃO diff (humano edita no PR). Skip se o target for unknown ou inconclusive.
 model: main
 ---
 
@@ -11,9 +11,10 @@ Você gera texto de sugestão pra um arquivo específico.
 ## Input
 - `divergencia`: { heuristic_ignored, evidence, target }
 - `current_content`: conteúdo atual do arquivo target
+- `contexto_momento`: markdown do contexto-momento.md (use como referência de fase, capacidade, foco atual ao formular a sugestão)
 
 ## Operação
-Conforme `target`, carregue a reference específica em `references/ajuste-<target>.md` e siga o template.
+Conforme `target`, carregue a reference específica em `references/ajuste-<target>.md` e siga o template. Use `contexto_momento` para garantir que a sugestão reflete a fase/capacidade/foco atuais — especialmente em targets `gabarito-stale` e `contexto-mudou`.
 
 ## Output
 ```json

@@ -2,8 +2,9 @@ const BASE = process.env.BASE_URL ?? 'http://localhost:3583';
 
 /** @description Smoke test ponta-a-ponta — gera + audita. Pré-req: npm run dev rodando. */
 async function main(): Promise<void> {
+  const ts = Date.now();
   console.log('1. Disparando gerador...');
-  const genRes = await fetch(`${BASE}/agents/qualificador-generator`, {
+  const genRes = await fetch(`${BASE}/agents/qualificador-generator/smoke-${ts}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: '{}',
@@ -13,7 +14,7 @@ async function main(): Promise<void> {
   console.log('   →', genData);
 
   console.log('2. Disparando monitor...');
-  const monRes = await fetch(`${BASE}/agents/monitor`, {
+  const monRes = await fetch(`${BASE}/agents/monitor/smoke-${ts}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: '{}',

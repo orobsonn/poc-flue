@@ -46,6 +46,18 @@ type SqlCriteriaResult = {
   budget_blow: { triggered: boolean; delta_pct?: number };
 };
 
+type CandidateLead = {
+  id: string;
+  segmento: string | null;
+  faturamento_band: string | null;
+  time_vendas: string | null;
+  ferramentas: string | null;
+  sinal: string | null;
+  fundador_tecnico: 0 | 1;
+  menciona_dor: 0 | 1;
+  contexto_livre_sanitized: string | null;
+};
+
 type Candidate = {
   id: string;
   did: string;
@@ -56,6 +68,28 @@ type Candidate = {
   has_out_of_scope: 0 | 1;
   cost_usd: number;
   duration_ms: number;
+  lead: CandidateLead | null;
+};
+
+type CandidateRow = {
+  id: string;
+  did: string;
+  reasoned: string;
+  out_of_scope: string | null;
+  objective_tier: 'A' | 'B' | 'C';
+  judgment_outcome: 'priorizar' | 'manter' | 'descartar';
+  has_out_of_scope: 0 | 1;
+  cost_usd: number;
+  duration_ms: number;
+  lead_id: string | null;
+  segmento: string | null;
+  faturamento_band: string | null;
+  time_vendas: string | null;
+  ferramentas: string | null;
+  sinal: string | null;
+  fundador_tecnico: 0 | 1 | null;
+  menciona_dor: 0 | 1 | null;
+  contexto_livre_sanitized: string | null;
 };
 
 /** @description Agente monitor — orquestrador do pipeline de auditoria. Disparado por POST/cron. */
@@ -76,28 +110,36 @@ export default async function (ctx: FlueContext<unknown, Env>): Promise<unknown>
   const toTs = Date.now();
 
   // 2. candidates: out_of_scope OR contradição obj↔julg
-  const candidates = await env.DB
+  const candidatesRaw = await env.DB
     .prepare(
-      `SELECT id, did, reasoned, out_of_scope, objective_tier, judgment_outcome, has_out_of_scope, cost_usd, duration_ms
+      `SELECT decision_log.id, decision_log.did, decision_log.reasoned, decision_log.out_of_scope,
+              decision_log.objective_tier, decision_log.judgment_outcome, decision_log.has_out_of_scope,
+              decision_log.cost_usd, decision_log.duration_ms,
+              lead.id AS lead_id, lead.segmento, lead.faturamento_band, lead.time_vendas,
+              lead.ferramentas, lead.sinal, lead.fundador_tecnico, lead.menciona_dor,
+              lead.contexto_livre_sanitized
        FROM decision_log
-       WHERE agent_id = ? AND ts > ? AND ts <= ?
+       LEFT JOIN lead ON decision_log.lead_id = lead.id
+       WHERE decision_log.agent_id = ? AND decision_log.ts > ? AND decision_log.ts <= ?
          AND (
-           has_out_of_scope = 1
-           OR (judgment_outcome = 'descartar' AND objective_tier = 'A')
-           OR (judgment_outcome = 'priorizar' AND objective_tier = 'C')
+           decision_log.has_out_of_scope = 1
+           OR (decision_log.judgment_outcome = 'descartar' AND decision_log.objective_tier = 'A')
+           OR (decision_log.judgment_outcome = 'priorizar' AND decision_log.objective_tier = 'C')
          )`,
     )
     .bind(agentId, fromTs, toTs)
-    .all<Candidate>();
+    .all<CandidateRow>();
 
-  if (!candidates.results || candidates.results.length === 0) {
+  if (!candidatesRaw.results || candidatesRaw.results.length === 0) {
     await updateCheckpoint(env, agentId, toTs);
     return { run_id: runId, status: 'no-candidates' };
   }
 
+  const candidates = candidatesRaw.results.map(rowToCandidate);
+
   // 3. bucketing
   const buckets = new Map<string, Candidate[]>();
-  for (const c of candidates.results) {
+  for (const c of candidates) {
     if (isBucketTranquilo(c.judgment_outcome, c.objective_tier, c.has_out_of_scope)) continue;
     const key = computeBucketKey(c.judgment_outcome, c.objective_tier, c.has_out_of_scope);
     if (!buckets.has(key)) buckets.set(key, []);
@@ -129,8 +171,9 @@ export default async function (ctx: FlueContext<unknown, Env>): Promise<unknown>
     role: 'auditor-monitor',
   });
 
-  // 6. carrega gabarito + active findings
+  // 6. carrega gabarito + contexto-momento + active findings
   const gabarito = (await fawRead(env.AUDITOR_R2, 'expected-reasoning/qualificador/fit-estrategico.md')) ?? '';
+  const contextoMomento = (await fawRead(env.AUDITOR_R2, 'agents-config/qualificador/contexto-momento.md')) ?? '';
   // active_findings simplificado pra POC — pra MVP, array vazio
   const activeFindings: unknown[] = [];
 
@@ -153,7 +196,12 @@ export default async function (ctx: FlueContext<unknown, Env>): Promise<unknown>
           try {
             const s = await harness.session(`detect-${sanitizeId(rep.id)}`);
             const data = await s.skill('detect-divergences', {
-              args: { decision: rep, gabarito, active_findings: activeFindings },
+              args: {
+                decision: { id: rep.id, did: rep.did, reasoned: rep.reasoned, out_of_scope: rep.out_of_scope },
+                lead: rep.lead,
+                gabarito,
+                active_findings: activeFindings,
+              },
               result: DetectDivergencesOutputSchema,
             });
             return { rep, data };
@@ -195,14 +243,14 @@ export default async function (ctx: FlueContext<unknown, Env>): Promise<unknown>
         const sessionId = `classify-${sanitizeId(div.heuristic_ignored)}-${sanitizeId(div.bucket_key)}`;
         const s = await harness.session(sessionId);
         const origin = await s.skill('classify-origin', {
-          args: { divergencia: div, gabarito },
+          args: { divergencia: div, gabarito, contexto_momento: contextoMomento },
           result: ClassifyOriginOutputSchema,
         });
         if (origin.target === 'inconclusive') return { div, origin, suggestion: null };
         const targetFile = targetToFile(origin.target);
         const currentContent = (await fawRead(env.AUDITOR_R2, targetFile)) ?? '';
         const suggestion = await s.skill('suggest-adjustment', {
-          args: { divergencia: { ...div, target: origin.target }, current_content: currentContent },
+          args: { divergencia: { ...div, target: origin.target }, current_content: currentContent, contexto_momento: contextoMomento },
           result: SuggestAdjustmentOutputSchema,
         });
         return { div, origin, suggestion };
@@ -230,7 +278,7 @@ export default async function (ctx: FlueContext<unknown, Env>): Promise<unknown>
   // 11. determinar severidade e gerar artefatos
   const maxBucketSize = bucketEntries.reduce((m, [, items]) => Math.max(m, items.length), 0);
   const severity = computeSeverity(patterns, sqlCriteria, maxBucketSize);
-  const analysis = renderAnalysis({ runId, fromTs, toTs, candidates: candidates.results.length, bucketEntries, sqlCriteria, severity });
+  const analysis = renderAnalysis({ runId, fromTs, toTs, candidates: candidates.length, bucketEntries, sqlCriteria, severity });
   const proposal = renderProposal(classifications.filter(Boolean) as Array<NonNullable<typeof classifications[number]>>);
   const divergenciasJson = JSON.stringify(uniqueDivergences, null, 2);
 
@@ -241,6 +289,17 @@ export default async function (ctx: FlueContext<unknown, Env>): Promise<unknown>
   await fawWrite(env.AUDITOR_R2, `decisions/${datePrefix}/${runId}/divergencias.json`, divergenciasJson);
 
   // 13. PR + Telegram (se severidade adequada)
+  const summary = buildRunSummary({
+    severity,
+    fromTs,
+    toTs,
+    candidates: candidates.length,
+    bucketEntries,
+    divergencesDetected: uniqueDivergences.length,
+    classifications: classifications.filter(Boolean) as ClassificationResult[],
+    sqlCriteria,
+  });
+
   let prUrl: string | null = null;
   if (severity !== 'info') {
     try {
@@ -248,8 +307,8 @@ export default async function (ctx: FlueContext<unknown, Env>): Promise<unknown>
         { pat: env.GITHUB_PAT, repo: env.GITHUB_REPO, defaultBranch: env.GITHUB_DEFAULT_BRANCH },
         {
           branch: `monitor/${runId}`,
-          title: `monitor: ${severity} em ${agentId}/fit-estrategico (run ${runId})`,
-          body: prBody({ runId, severity, analysis, proposal }),
+          title: prTitle(runId, summary),
+          body: prBody(runId, summary),
           files: [
             { path: `monitor-runs/${runId}/analysis.md`, content: analysis },
             { path: `monitor-runs/${runId}/proposal.md`, content: proposal },
@@ -264,7 +323,7 @@ export default async function (ctx: FlueContext<unknown, Env>): Promise<unknown>
   if (severity === 'critical' && prUrl) {
     await sendTelegramAlert(
       { botToken: env.TELEGRAM_BOT_TOKEN, chatId: env.TELEGRAM_CHAT_ID },
-      `Monitor auditor: ${agentId}/fit-estrategico\nRun ${runId.slice(-8)}\nSeveridade: critical\nPadrões: ${patterns.patterns.length}\nPR: ${prUrl}`,
+      telegramMessage(runId, summary, prUrl),
     );
   }
 
@@ -370,8 +429,177 @@ function renderProposal(classifications: Array<{ div: { heuristic_ignored: strin
   return lines.join('\n');
 }
 
-function prBody(input: { runId: string; severity: string; analysis: string; proposal: string }): string {
-  return `## Run ${input.runId}\n\nSeveridade: **${input.severity}**\n\n${input.analysis}\n\n---\n\n${input.proposal}\n\n---\n\nArtefatos completos em \`monitor-runs/${input.runId}/\`.`;
+const AGENT_LABEL = 'qualificador/fit-estrategico';
+
+type ClassificationResult = {
+  div: {
+    decision_id: string;
+    heuristic_ignored: string;
+    evidence: string;
+    severity: 'low' | 'med' | 'high';
+    bucket_key: string;
+    bucket_size: number;
+    representatives_audited: number;
+  };
+  origin: { target: string; rationale: string };
+  suggestion: { target_file: string; proposed_change: string; rationale: string } | null;
+};
+
+type RunSummary = {
+  severity: 'critical' | 'warn' | 'info';
+  divergencesDetected: number;
+  classifications: ClassificationResult[];
+  candidates: number;
+  bucketCount: number;
+  windowHours: number;
+  topDivergence: ClassificationResult | null;
+  sqlCriteria: SqlCriteriaResult;
+};
+
+/** @description Strip markdown headers/whitespace de um heuristic_ignored cru pra render humano. */
+function humanizeHeuristic(raw: string): string {
+  const firstLine = raw.split('\n')[0]?.trim() ?? raw;
+  return firstLine.replace(/^#+\s*/, '').trim();
+}
+
+/** @description Pega a divergência "principal" — maior severidade desempata por bucket_size. */
+function pickTopDivergence(classifications: ClassificationResult[]): ClassificationResult | null {
+  if (classifications.length === 0) return null;
+  const order = { high: 3, med: 2, low: 1 } as const;
+  return [...classifications].sort((a, b) => {
+    const sevDiff = order[b.div.severity] - order[a.div.severity];
+    if (sevDiff !== 0) return sevDiff;
+    return b.div.bucket_size - a.div.bucket_size;
+  })[0] ?? null;
+}
+
+/** @description Constrói sumário estruturado do run pra alimentar PR + Telegram com lead-first framing. */
+function buildRunSummary(input: {
+  severity: 'critical' | 'warn' | 'info';
+  fromTs: number;
+  toTs: number;
+  candidates: number;
+  bucketEntries: Array<[string, unknown[]]>;
+  divergencesDetected: number;
+  classifications: ClassificationResult[];
+  sqlCriteria: SqlCriteriaResult;
+}): RunSummary {
+  return {
+    severity: input.severity,
+    divergencesDetected: input.divergencesDetected,
+    classifications: input.classifications,
+    candidates: input.candidates,
+    bucketCount: input.bucketEntries.length,
+    windowHours: Math.round((input.toTs - input.fromTs) / 3600_000),
+    topDivergence: pickTopDivergence(input.classifications),
+    sqlCriteria: input.sqlCriteria,
+  };
+}
+
+/** @description Mensagem Telegram — direta, lead-first, sem markdown pesado. */
+function telegramMessage(runId: string, s: RunSummary, prUrl: string): string {
+  const lines = [
+    `[${s.severity.toUpperCase()}] auditor • ${AGENT_LABEL}`,
+    '',
+    `${s.divergencesDetected} divergência${s.divergencesDetected === 1 ? '' : 's'} em ${s.candidates} decisões (janela ${s.windowHours}h, ${s.bucketCount} bucket${s.bucketCount === 1 ? '' : 's'} ativo${s.bucketCount === 1 ? '' : 's'})`,
+  ];
+  if (s.topDivergence) {
+    const d = s.topDivergence.div;
+    lines.push('', `Principal: ${humanizeHeuristic(d.heuristic_ignored)} (${d.severity}) em ${d.bucket_size} decisões do bucket ${d.bucket_key}`);
+    lines.push(`Evidência: "${d.evidence}"`);
+  } else if (s.divergencesDetected > 0) {
+    lines.push('', `(classificação de origem falhou para todas as divergências — ver PR pra detalhes brutos)`);
+  }
+  lines.push('', `PR: ${prUrl}`, `Run: ${runId}`);
+  return lines.join('\n');
+}
+
+/** @description Title do PR — ação + número + label do agente, max ~70 chars. */
+function prTitle(runId: string, s: RunSummary): string {
+  return `auditor[${s.severity}]: ${s.divergencesDetected} divergência${s.divergencesDetected === 1 ? '' : 's'} em ${AGENT_LABEL} (run ${runId.slice(-8)})`;
+}
+
+/** @description Body do PR — TL;DR, divergências em linguagem humana, critérios SQL, run metadata. */
+function prBody(runId: string, s: RunSummary): string {
+  const sqlRows = [
+    ['out_of_scope_growth', s.sqlCriteria.out_of_scope_growth.triggered ? 'triggered' : 'ok', s.sqlCriteria.out_of_scope_growth.delta_pp !== undefined ? `${s.sqlCriteria.out_of_scope_growth.delta_pp.toFixed(1)}pp` : '-'],
+    ['regression', s.sqlCriteria.regression.triggered ? 'triggered' : 'ok', s.sqlCriteria.regression.delta_pct !== undefined ? `${(s.sqlCriteria.regression.delta_pct * 100).toFixed(1)}%` : '-'],
+    ['budget_blow', s.sqlCriteria.budget_blow.triggered ? 'triggered' : 'ok', s.sqlCriteria.budget_blow.delta_pct !== undefined ? `${(s.sqlCriteria.budget_blow.delta_pct * 100).toFixed(1)}%` : '-'],
+  ];
+
+  const tldr = s.topDivergence
+    ? `${s.divergencesDetected} divergência${s.divergencesDetected === 1 ? '' : 's'} em ${s.candidates} decisões da janela de ${s.windowHours}h. Severidade **${s.severity}**. Principal: ${humanizeHeuristic(s.topDivergence.div.heuristic_ignored)} ignorado em ${s.topDivergence.div.bucket_size} decisões do bucket \`${s.topDivergence.div.bucket_key}\`.`
+    : s.divergencesDetected > 0
+      ? `${s.divergencesDetected} divergência${s.divergencesDetected === 1 ? '' : 's'} detectada${s.divergencesDetected === 1 ? '' : 's'} em ${s.candidates} decisões, mas a classificação de origem falhou (LLM não respondeu no contrato esperado). Severidade **${s.severity}** — ver \`divergencias.json\` no run pra detalhes brutos.`
+      : `Sem divergências detectadas pela skill, mas critérios SQL dispararam — severidade **${s.severity}**.`;
+
+  const divLines: string[] = ['## Divergências encontradas', ''];
+  if (s.classifications.length === 0 && s.divergencesDetected === 0) {
+    divLines.push('_Nenhuma divergência detectada pela LLM neste run. Severidade vem dos critérios SQL abaixo._', '');
+  } else if (s.classifications.length === 0) {
+    divLines.push(`_${s.divergencesDetected} divergência(s) bruta(s) detectada(s) — classify-origin falhou em todas. Conteúdo cru em \`monitor-runs/${runId}/divergencias.json\`._`, '');
+  } else {
+    s.classifications.forEach((c, i) => {
+      divLines.push(`### ${i + 1}. ${humanizeHeuristic(c.div.heuristic_ignored)} (severity: ${c.div.severity})`);
+      divLines.push(`- **Bucket**: \`${c.div.bucket_key}\` — ${c.div.bucket_size} decisões afetadas, ${c.div.representatives_audited} auditadas`);
+      divLines.push(`- **Evidência (reasoned do agente)**: "${c.div.evidence}"`);
+      divLines.push(`- **Origem**: \`${c.origin.target}\` — ${c.origin.rationale}`);
+      if (c.suggestion) {
+        divLines.push(`- **Ajuste sugerido em** \`${c.suggestion.target_file}\`:`);
+        divLines.push('', '> ' + c.suggestion.proposed_change.split('\n').join('\n> '), '');
+        divLines.push(`  _Rationale_: ${c.suggestion.rationale}`);
+      } else {
+        divLines.push('- **Sugestão**: _origem inconclusiva, sem ajuste proposto_');
+      }
+      divLines.push('');
+    });
+  }
+
+  return [
+    '## TL;DR', '', tldr, '',
+    divLines.join('\n'),
+    '## Critérios SQL', '',
+    '| Critério | Status | Δ vs janela anterior |',
+    '| --- | --- | --- |',
+    ...sqlRows.map((r) => `| ${r[0]} | ${r[1]} | ${r[2]} |`),
+    '',
+    '## Metadata do run', '',
+    `- Run ID: \`${runId}\``,
+    `- Janela: ${s.windowHours}h`,
+    `- Candidatos avaliados: ${s.candidates}`,
+    `- Buckets ativos: ${s.bucketCount}`,
+    '',
+    `Artefatos completos em \`monitor-runs/${runId}/\` (analysis.md, proposal.md, divergencias.json).`,
+  ].join('\n');
+}
+
+/** @description Mapeia row plana do JOIN decision_log×lead pra Candidate com lead aninhado. */
+function rowToCandidate(row: CandidateRow): Candidate {
+  const lead: CandidateLead | null = row.lead_id
+    ? {
+        id: row.lead_id,
+        segmento: row.segmento,
+        faturamento_band: row.faturamento_band,
+        time_vendas: row.time_vendas,
+        ferramentas: row.ferramentas,
+        sinal: row.sinal,
+        fundador_tecnico: (row.fundador_tecnico ?? 0) as 0 | 1,
+        menciona_dor: (row.menciona_dor ?? 0) as 0 | 1,
+        contexto_livre_sanitized: row.contexto_livre_sanitized,
+      }
+    : null;
+  return {
+    id: row.id,
+    did: row.did,
+    reasoned: row.reasoned,
+    out_of_scope: row.out_of_scope,
+    objective_tier: row.objective_tier,
+    judgment_outcome: row.judgment_outcome,
+    has_out_of_scope: row.has_out_of_scope,
+    cost_usd: row.cost_usd,
+    duration_ms: row.duration_ms,
+    lead,
+  };
 }
 
 function sanitizeId(input: string): string {

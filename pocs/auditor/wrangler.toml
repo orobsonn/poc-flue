@@ -22,7 +22,7 @@ crons = [
 ]
 
 [vars]
-MODEL_MAIN = "cloudflare-workers-ai/@cf/openai/gpt-oss-120b"
+MODEL_MAIN = "cloudflare-workers-ai/@cf/moonshotai/kimi-k2.6"
 JANELA_HORAS = "6"
 BUCKET_K_REPRESENTATIVES = "3"
 SAMPLE_MIN_PER_BUCKET = "5"
