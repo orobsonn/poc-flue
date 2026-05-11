@@ -1,14 +1,18 @@
 import * as v from 'valibot';
 import { DecisionLogInsertSchema } from '@/schemas/decision-log';
+import { sanitizePII } from '@/schemas/pii';
 import { defendPII } from './pii';
 import { pseudonymize } from './hmac';
 import { MODE_CONFIGS, type SyntheticMode } from './synthetic-modes';
-import { applyRubrica, simulateDecision, type Lead } from './synthetic-templates';
+import { applyRubrica, faturamentoToBand, simulateDecision, type Lead } from './synthetic-templates';
 
 export type GeneratorEnv = {
   DB: D1Database;
   HMAC_SECRET: string;
 };
+
+const FUNDADOR_TECNICO_RE = /fundador (técnico|tech|cto)/i;
+const MENCIONA_DOR_RE = /dor|problema espec[ií]fic/i;
 
 /** @description Gera N decisions sintéticas no modo dado e insere em D1. */
 export async function generateRun(
@@ -32,6 +36,23 @@ export async function generateRun(
     const agentId = await pseudonymize('qualificador', env.HMAC_SECRET);
     const threadId = await pseudonymize(`run-${Date.now()}-${i}`, env.HMAC_SECRET);
 
+    const fundadorTecnico = FUNDADOR_TECNICO_RE.test(lead.contexto_livre) ? 1 : 0;
+    const mencionaDor = MENCIONA_DOR_RE.test(lead.contexto_livre) ? 1 : 0;
+    const contextoSanitized = sanitizePII(lead.contexto_livre);
+    const faturamentoBand = faturamentoToBand(lead.faturamento_mensal);
+
+    await env.DB.prepare(
+      `INSERT OR IGNORE INTO lead (
+        id, segmento, faturamento_band, time_vendas, ferramentas, sinal,
+        fundador_tecnico, menciona_dor, contexto_livre_sanitized
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+      .bind(
+        lead.id, lead.segmento, faturamentoBand, lead.time_vendas, lead.ferramentas,
+        lead.sinal, fundadorTecnico, mencionaDor, contextoSanitized,
+      )
+      .run();
+
     const candidate = {
       id: `d-${Date.now()}-${i}`,
       ts: Date.now(),
@@ -49,6 +70,7 @@ export async function generateRun(
       objective_tier: tier,
       judgment_outcome: decision.outcome,
       has_out_of_scope: (decision.out_of_scope ? 1 : 0) as 0 | 1,
+      lead_id: lead.id,
     } as const;
 
     const piiResult = defendPII(candidate, ['reasoned', 'out_of_scope']);
@@ -68,8 +90,8 @@ export async function generateRun(
         `INSERT INTO decision_log (
           id, ts, agent_id, thread_id, domain, phase, did, reasoned, out_of_scope,
           duration_ms, cost_usd, model_main, expected_reasoning_ref,
-          objective_tier, judgment_outcome, has_out_of_scope
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          objective_tier, judgment_outcome, has_out_of_scope, lead_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
         .bind(
           validated.id, validated.ts, validated.agent_id, validated.thread_id,
@@ -77,6 +99,7 @@ export async function generateRun(
           validated.out_of_scope, validated.duration_ms, validated.cost_usd,
           validated.model_main, validated.expected_reasoning_ref,
           validated.objective_tier, validated.judgment_outcome, validated.has_out_of_scope,
+          validated.lead_id,
         )
         .run();
       inserted++;

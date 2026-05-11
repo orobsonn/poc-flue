@@ -20,11 +20,21 @@ export type SimulatedDecision = {
   cost_usd: number;
 };
 
-function parseFaturamentoK(raw: string): number {
+/** @description Converte string de faturamento (ex: "120k", "2M") em valor em milhares (K). */
+export function parseFaturamentoK(raw: string): number {
   const num = parseInt(raw.replace(/\D/g, ''), 10);
   if (Number.isNaN(num)) return 0;
   const isMilhao = /M/.test(raw);
   return isMilhao ? num * 1000 : num;
+}
+
+/** @description Mapeia faturamento em K para banda categórica usada na tabela `lead`. */
+export function faturamentoToBand(raw: string): '0-50k' | '50k-500k' | '500k-5M' | '>5M' {
+  const k = parseFaturamentoK(raw);
+  if (k < 50) return '0-50k';
+  if (k < 500) return '50k-500k';
+  if (k < 5000) return '500k-5M';
+  return '>5M';
 }
 
 /** @description Aplica rubrica determinística pra calcular tier objetivo do lead. */

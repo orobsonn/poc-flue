@@ -46,6 +46,18 @@ type SqlCriteriaResult = {
   budget_blow: { triggered: boolean; delta_pct?: number };
 };
 
+type CandidateLead = {
+  id: string;
+  segmento: string | null;
+  faturamento_band: string | null;
+  time_vendas: string | null;
+  ferramentas: string | null;
+  sinal: string | null;
+  fundador_tecnico: 0 | 1;
+  menciona_dor: 0 | 1;
+  contexto_livre_sanitized: string | null;
+};
+
 type Candidate = {
   id: string;
   did: string;
@@ -56,6 +68,28 @@ type Candidate = {
   has_out_of_scope: 0 | 1;
   cost_usd: number;
   duration_ms: number;
+  lead: CandidateLead | null;
+};
+
+type CandidateRow = {
+  id: string;
+  did: string;
+  reasoned: string;
+  out_of_scope: string | null;
+  objective_tier: 'A' | 'B' | 'C';
+  judgment_outcome: 'priorizar' | 'manter' | 'descartar';
+  has_out_of_scope: 0 | 1;
+  cost_usd: number;
+  duration_ms: number;
+  lead_id: string | null;
+  segmento: string | null;
+  faturamento_band: string | null;
+  time_vendas: string | null;
+  ferramentas: string | null;
+  sinal: string | null;
+  fundador_tecnico: 0 | 1 | null;
+  menciona_dor: 0 | 1 | null;
+  contexto_livre_sanitized: string | null;
 };
 
 /** @description Agente monitor — orquestrador do pipeline de auditoria. Disparado por POST/cron. */
@@ -76,28 +110,36 @@ export default async function (ctx: FlueContext<unknown, Env>): Promise<unknown>
   const toTs = Date.now();
 
   // 2. candidates: out_of_scope OR contradição obj↔julg
-  const candidates = await env.DB
+  const candidatesRaw = await env.DB
     .prepare(
-      `SELECT id, did, reasoned, out_of_scope, objective_tier, judgment_outcome, has_out_of_scope, cost_usd, duration_ms
+      `SELECT decision_log.id, decision_log.did, decision_log.reasoned, decision_log.out_of_scope,
+              decision_log.objective_tier, decision_log.judgment_outcome, decision_log.has_out_of_scope,
+              decision_log.cost_usd, decision_log.duration_ms,
+              lead.id AS lead_id, lead.segmento, lead.faturamento_band, lead.time_vendas,
+              lead.ferramentas, lead.sinal, lead.fundador_tecnico, lead.menciona_dor,
+              lead.contexto_livre_sanitized
        FROM decision_log
-       WHERE agent_id = ? AND ts > ? AND ts <= ?
+       LEFT JOIN lead ON decision_log.lead_id = lead.id
+       WHERE decision_log.agent_id = ? AND decision_log.ts > ? AND decision_log.ts <= ?
          AND (
-           has_out_of_scope = 1
-           OR (judgment_outcome = 'descartar' AND objective_tier = 'A')
-           OR (judgment_outcome = 'priorizar' AND objective_tier = 'C')
+           decision_log.has_out_of_scope = 1
+           OR (decision_log.judgment_outcome = 'descartar' AND decision_log.objective_tier = 'A')
+           OR (decision_log.judgment_outcome = 'priorizar' AND decision_log.objective_tier = 'C')
          )`,
     )
     .bind(agentId, fromTs, toTs)
-    .all<Candidate>();
+    .all<CandidateRow>();
 
-  if (!candidates.results || candidates.results.length === 0) {
+  if (!candidatesRaw.results || candidatesRaw.results.length === 0) {
     await updateCheckpoint(env, agentId, toTs);
     return { run_id: runId, status: 'no-candidates' };
   }
 
+  const candidates = candidatesRaw.results.map(rowToCandidate);
+
   // 3. bucketing
   const buckets = new Map<string, Candidate[]>();
-  for (const c of candidates.results) {
+  for (const c of candidates) {
     if (isBucketTranquilo(c.judgment_outcome, c.objective_tier, c.has_out_of_scope)) continue;
     const key = computeBucketKey(c.judgment_outcome, c.objective_tier, c.has_out_of_scope);
     if (!buckets.has(key)) buckets.set(key, []);
@@ -153,7 +195,12 @@ export default async function (ctx: FlueContext<unknown, Env>): Promise<unknown>
           try {
             const s = await harness.session(`detect-${sanitizeId(rep.id)}`);
             const data = await s.skill('detect-divergences', {
-              args: { decision: rep, gabarito, active_findings: activeFindings },
+              args: {
+                decision: { id: rep.id, did: rep.did, reasoned: rep.reasoned, out_of_scope: rep.out_of_scope },
+                lead: rep.lead,
+                gabarito,
+                active_findings: activeFindings,
+              },
               result: DetectDivergencesOutputSchema,
             });
             return { rep, data };
@@ -230,7 +277,7 @@ export default async function (ctx: FlueContext<unknown, Env>): Promise<unknown>
   // 11. determinar severidade e gerar artefatos
   const maxBucketSize = bucketEntries.reduce((m, [, items]) => Math.max(m, items.length), 0);
   const severity = computeSeverity(patterns, sqlCriteria, maxBucketSize);
-  const analysis = renderAnalysis({ runId, fromTs, toTs, candidates: candidates.results.length, bucketEntries, sqlCriteria, severity });
+  const analysis = renderAnalysis({ runId, fromTs, toTs, candidates: candidates.length, bucketEntries, sqlCriteria, severity });
   const proposal = renderProposal(classifications.filter(Boolean) as Array<NonNullable<typeof classifications[number]>>);
   const divergenciasJson = JSON.stringify(uniqueDivergences, null, 2);
 
@@ -372,6 +419,35 @@ function renderProposal(classifications: Array<{ div: { heuristic_ignored: strin
 
 function prBody(input: { runId: string; severity: string; analysis: string; proposal: string }): string {
   return `## Run ${input.runId}\n\nSeveridade: **${input.severity}**\n\n${input.analysis}\n\n---\n\n${input.proposal}\n\n---\n\nArtefatos completos em \`monitor-runs/${input.runId}/\`.`;
+}
+
+/** @description Mapeia row plana do JOIN decision_log×lead pra Candidate com lead aninhado. */
+function rowToCandidate(row: CandidateRow): Candidate {
+  const lead: CandidateLead | null = row.lead_id
+    ? {
+        id: row.lead_id,
+        segmento: row.segmento,
+        faturamento_band: row.faturamento_band,
+        time_vendas: row.time_vendas,
+        ferramentas: row.ferramentas,
+        sinal: row.sinal,
+        fundador_tecnico: (row.fundador_tecnico ?? 0) as 0 | 1,
+        menciona_dor: (row.menciona_dor ?? 0) as 0 | 1,
+        contexto_livre_sanitized: row.contexto_livre_sanitized,
+      }
+    : null;
+  return {
+    id: row.id,
+    did: row.did,
+    reasoned: row.reasoned,
+    out_of_scope: row.out_of_scope,
+    objective_tier: row.objective_tier,
+    judgment_outcome: row.judgment_outcome,
+    has_out_of_scope: row.has_out_of_scope,
+    cost_usd: row.cost_usd,
+    duration_ms: row.duration_ms,
+    lead,
+  };
 }
 
 function sanitizeId(input: string): string {

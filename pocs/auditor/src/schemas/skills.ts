@@ -1,6 +1,20 @@
 import * as v from 'valibot';
 import { JudgmentOutcomeSchema, ObjectiveTierSchema } from './decision-log';
 
+/** @description Snapshot do lead persistido na tabela `lead`, usado pela skill detect-divergences pra checar pré-condições dos heurísticos. */
+export const LeadSnapshotSchema = v.object({
+  id: v.string(),
+  segmento: v.nullable(v.string()),
+  faturamento_band: v.nullable(v.string()),
+  time_vendas: v.nullable(v.string()),
+  ferramentas: v.nullable(v.string()),
+  sinal: v.nullable(v.string()),
+  fundador_tecnico: v.picklist([0, 1]),
+  menciona_dor: v.picklist([0, 1]),
+  contexto_livre_sanitized: v.nullable(v.string()),
+});
+export type LeadSnapshot = v.InferOutput<typeof LeadSnapshotSchema>;
+
 /** @description Schema de output da skill detect-divergences. */
 export const DetectDivergencesOutputSchema = v.object({
   divergences: v.array(v.object({

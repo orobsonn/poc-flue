@@ -29,5 +29,6 @@ export const DecisionLogInsertSchema = v.object({
   objective_tier: ObjectiveTierSchema,
   judgment_outcome: JudgmentOutcomeSchema,
   has_out_of_scope: v.picklist([0, 1]),
+  lead_id: v.optional(v.nullable(v.string())),
 });
 export type DecisionLogInsert = v.InferOutput<typeof DecisionLogInsertSchema>;
