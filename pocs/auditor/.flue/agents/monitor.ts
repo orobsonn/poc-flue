@@ -213,7 +213,8 @@ export default async function (ctx: FlueContext<unknown, Env>): Promise<unknown>
   }
 
   // 11. determinar severidade e gerar artefatos
-  const severity = computeSeverity(patterns, sqlCriteria);
+  const maxBucketSize = bucketEntries.reduce((m, [, items]) => Math.max(m, items.length), 0);
+  const severity = computeSeverity(patterns, sqlCriteria, maxBucketSize);
   const analysis = renderAnalysis({ runId, fromTs, toTs, candidates: candidates.results.length, bucketEntries, sqlCriteria, severity });
   const proposal = renderProposal(classifications.filter(Boolean) as Array<NonNullable<typeof classifications[number]>>);
   const divergenciasJson = JSON.stringify(uniqueDivergences, null, 2);
@@ -308,12 +309,13 @@ async function runSqlCriteria(env: Env, agentId: string, fromTs: number, toTs: n
 function computeSeverity(
   patterns: v.InferOutput<typeof SummarizePatternsOutputSchema>,
   sql: { out_of_scope_growth: { triggered: boolean }; regression: { triggered: boolean }; budget_blow: { triggered: boolean } },
+  maxBucketSize: number,
 ): 'critical' | 'warn' | 'info' {
   if (patterns.cross_bucket_signal) return 'critical';
   for (const p of patterns.patterns) {
     if (p.promotion_recommendation === 'finding' && shouldPromoteToFinding({
       distinct_buckets_count: p.affected_buckets.length,
-      max_bucket_size: Math.ceil(p.inferred_decisions / Math.max(1, p.affected_buckets.length)),
+      max_bucket_size: maxBucketSize,
       confidence: p.confidence,
     })) return 'critical';
   }
