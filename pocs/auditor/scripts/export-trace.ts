@@ -16,12 +16,19 @@ function sqlite(dbPath: string, query: string): string {
   return execFileSync('sqlite3', [dbPath, query], { encoding: 'utf8' });
 }
 
-function listDoSqlites(agentName: string): string[] {
-  const dir = join(DO_BASE, `auditor-${agentName}`);
+function listDoSqlites(prefix: string): string[] {
   try {
-    return readdirSync(dir)
-      .filter((f) => f.endsWith('.sqlite') && f !== 'metadata.sqlite')
-      .map((f) => join(dir, f));
+    const dirs = readdirSync(DO_BASE).filter((d) => d.startsWith(`auditor-${prefix}`));
+    const files: string[] = [];
+    for (const d of dirs) {
+      const dirPath = join(DO_BASE, d);
+      try {
+        for (const f of readdirSync(dirPath)) {
+          if (f.endsWith('.sqlite') && f !== 'metadata.sqlite') files.push(join(dirPath, f));
+        }
+      } catch { /* skip */ }
+    }
+    return files;
   } catch {
     return [];
   }
@@ -50,6 +57,7 @@ function readR2Blob(blobId: string): string | null {
 
 /** @description Busca sessions Flue cujo `id` contém o runId — varre todas as DO sqlite do AuditorAgentic. */
 function findSessions(runId: string): Array<{ source: string; row: SessionRow }> {
+  // varre todos os DOs do AuditorAgentic* (Stage 1, 2, 3, 4) — cada stage tem seu DO
   const dbs = listDoSqlites('AuditorAgentic');
   const hits: Array<{ source: string; row: SessionRow }> = [];
   for (const db of dbs) {

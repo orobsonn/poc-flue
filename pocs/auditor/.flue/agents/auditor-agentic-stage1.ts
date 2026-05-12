@@ -8,7 +8,7 @@ import {
   AgenticAuditOutputSchema,
   type AgenticAuditOutput,
 } from '@/schemas/skills';
-import { computeBucketKey, isBucketTranquilo } from '@/lib/bucketing';
+import { computeBucketKey, isBucketTranquilo, pickRepresentatives } from '@/lib/bucketing';
 import { detectOutOfScopeGrowth, detectRegression, detectBudgetBlow } from '@/lib/criteria';
 import { fawRead, fawWrite } from '@/lib/faw';
 import { buildSkillsSandbox } from '@/lib/sandbox';
@@ -138,6 +138,7 @@ export default async function (ctx: FlueContext<unknown, Env>): Promise<unknown>
     await recordRunMetrics(env.AUDITOR_R2, {
       run_id: runId,
       mode: 'agentic',
+      stage: 1,
       severity: 'none',
       divergences_detected: 0,
       classifications_succeeded: 0,
@@ -165,6 +166,7 @@ export default async function (ctx: FlueContext<unknown, Env>): Promise<unknown>
     await recordRunMetrics(env.AUDITOR_R2, {
       run_id: runId,
       mode: 'agentic',
+      stage: 1,
       severity: 'none',
       divergences_detected: 0,
       classifications_succeeded: 0,
@@ -189,40 +191,37 @@ export default async function (ctx: FlueContext<unknown, Env>): Promise<unknown>
         headers: { 'cf-aig-authorization': `Bearer ${env.CLOUDFLARE_AI_GATEWAY_TOKEN}` },
       },
     },
-    role: 'auditor-agentic',
+    role: 'auditor-agentic-stage1',
   });
 
   const gabarito = (await fawRead(env.AUDITOR_R2, 'expected-reasoning/qualificador/fit-estrategico.md')) ?? '';
   const contextoMomento = (await fawRead(env.AUDITOR_R2, 'agents-config/qualificador/contexto-momento.md')) ?? '';
   const activeFindings: unknown[] = [];
 
-  // Stage 2: bucket inteiro disponivel ao agente, ele escolhe quais auditar.
-  const candidatesById = new Map<string, { rep: Candidate; bucketKey: string }>();
+  // sample reps por bucket (ainda imperativo no Stage 1 — Stage 2 move pro agente)
+  const repsByBucket = new Map<string, Candidate[]>();
+  const repsById = new Map<string, { rep: Candidate; bucketKey: string }>();
   for (const [bucketKey, items] of bucketEntries) {
-    for (const r of items) candidatesById.set(r.id, { rep: r, bucketKey });
+    const reps = pickRepresentatives(items, k, hashSeed(runId + bucketKey));
+    repsByBucket.set(bucketKey, reps);
+    for (const r of reps) repsById.set(r.id, { rep: r, bucketKey });
   }
 
-  // contadores compartilhados
+  // contador compartilhado de chamadas LLM via tools
   let llmCallsCount = 0;
-  const bucketDetectsCount = new Map<string, number>();
 
   const detectTool: ToolDef = {
     name: 'detect_divergences',
-    description: `Roda a skill detect-divergences numa decisão escolhida do bucket. Cap de ${k} detect_divergences por bucket — chamadas além disso são rejeitadas. Use pra cada representante que você escolher (priorize diversidade do lead ou reasoning mais divergente do gabarito).`,
+    description: 'Roda a skill detect-divergences numa decisão representante. Retorna divergências encontradas (heurístico ignorado, evidência literal, severidade). Use uma vez por representante.',
     parameters: {
       type: 'object',
-      properties: { decision_id: { type: 'string', description: 'ID da decisão escolhida pra auditoria (uso os IDs listados no prompt)' } },
+      properties: { decision_id: { type: 'string', description: 'ID da decisão representante (uso os IDs listados no prompt)' } },
       required: ['decision_id'],
     },
     async execute(args) {
       const decisionId = String((args as { decision_id?: unknown }).decision_id ?? '');
-      const entry = candidatesById.get(decisionId);
-      if (!entry) return JSON.stringify({ error: `decision_id "${decisionId}" não está na lista de candidatos` });
-      const prevCount = bucketDetectsCount.get(entry.bucketKey) ?? 0;
-      if (prevCount >= k) {
-        return JSON.stringify({ error: `cap de ${k} detect_divergences excedido no bucket ${entry.bucketKey}; escolha outro bucket ou prossiga pra classify_origin` });
-      }
-      bucketDetectsCount.set(entry.bucketKey, prevCount + 1);
+      const entry = repsById.get(decisionId);
+      if (!entry) return JSON.stringify({ error: `decision_id "${decisionId}" não está na lista de representantes` });
       llmCallsCount++;
       try {
         const s = await harness.session(`detect-${sanitizeId(decisionId)}-${runId}`);
@@ -374,7 +373,7 @@ export default async function (ctx: FlueContext<unknown, Env>): Promise<unknown>
     },
   };
 
-  const goal = buildGoal({ bucketEntries, gabarito, contextoMomento, k });
+  const goal = buildGoal({ bucketEntries, repsByBucket, gabarito, contextoMomento });
 
   const mainSession = await harness.session(`main-${runId}`);
   let audit: AgenticAuditOutput;
@@ -382,7 +381,7 @@ export default async function (ctx: FlueContext<unknown, Env>): Promise<unknown>
     audit = await mainSession.prompt(goal, {
       tools: [detectTool, classifyTool, suggestTool, summarizeTool],
       result: AgenticAuditOutputSchema,
-      role: 'auditor-agentic',
+      role: 'auditor-agentic-stage1',
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -390,6 +389,7 @@ export default async function (ctx: FlueContext<unknown, Env>): Promise<unknown>
     await recordRunMetrics(env.AUDITOR_R2, {
       run_id: runId,
       mode: 'agentic',
+      stage: 1,
       severity: 'none',
       divergences_detected: 0,
       classifications_succeeded: 0,
@@ -403,7 +403,7 @@ export default async function (ctx: FlueContext<unknown, Env>): Promise<unknown>
 
   // bucket_size pra render (LLM não tem essa info)
   const bucketSizes = new Map(bucketEntries.map(([key, items]) => [key, items.length]));
-  const repsAuditedByBucket = new Map(bucketEntries.map(([key]) => [key, bucketDetectsCount.get(key) ?? 0]));
+  const repsAuditedByBucket = new Map(bucketEntries.map(([key, items]) => [key, Math.min(k, items.length)]));
 
   const maxBucketSize = bucketEntries.reduce((m, [, items]) => Math.max(m, items.length), 0);
   const patternsForSeverity = { patterns: audit.patterns, cross_bucket_signal: audit.cross_bucket_signal };
@@ -480,7 +480,6 @@ export default async function (ctx: FlueContext<unknown, Env>): Promise<unknown>
 
   await updateCheckpoint(env, agentId, toTs);
 
-  const repsAuditedTotal = [...bucketDetectsCount.values()].reduce((a, b) => a + b, 0);
   await recordRunMetrics(env.AUDITOR_R2, {
     run_id: runId,
     mode: 'agentic',
@@ -491,22 +490,21 @@ export default async function (ctx: FlueContext<unknown, Env>): Promise<unknown>
     buckets_active: bucketEntries.length,
     latency_ms_total: Date.now() - runStartTs,
     llm_calls_count: llmCallsCount,
-    reps_audited_total: repsAuditedTotal,
-    reps_audited_per_bucket: Object.fromEntries(bucketDetectsCount),
   });
 
-  return { run_id: runId, severity, divergences: audit.divergences.length, llm_calls: llmCallsCount, reps_audited: repsAuditedTotal, pr: prUrl };
+  return { run_id: runId, severity, divergences: audit.divergences.length, llm_calls: llmCallsCount, pr: prUrl };
 }
 
-/** @description Constrói o prompt-goal com gabarito, contexto e buckets completos — agente escolhe quais representantes auditar (Stage 2). */
+/** @description Constrói o prompt-goal com gabarito, contexto, buckets e representantes inline. */
 function buildGoal(input: {
   bucketEntries: Array<[string, Candidate[]]>;
+  repsByBucket: Map<string, Candidate[]>;
   gabarito: string;
   contextoMomento: string;
-  k: number;
 }): string {
   const bucketsSection = input.bucketEntries.map(([bucketKey, items]) => {
-    const itemsLines = items.map((r) => {
+    const reps = input.repsByBucket.get(bucketKey) ?? [];
+    const repsLines = reps.map((r) => {
       const lead = r.lead ? JSON.stringify({
         segmento: r.lead.segmento,
         faturamento_band: r.lead.faturamento_band,
@@ -519,12 +517,12 @@ function buildGoal(input: {
       }) : 'null';
       return `- decision_id: \`${r.id}\`\n  reasoned: ${JSON.stringify(r.reasoned)}\n  out_of_scope: ${JSON.stringify(r.out_of_scope)}\n  lead: ${lead}`;
     }).join('\n');
-    return `### Bucket \`${bucketKey}\` — ${items.length} decisões disponíveis\n\n${itemsLines}`;
+    return `### Bucket \`${bucketKey}\` — ${items.length} decisões, ${reps.length} representantes auditáveis\n\n${repsLines}`;
   }).join('\n\n');
 
   return `# Auditoria agêntica de decisões
 
-Você é o auditor-agentic. Recebe a lista completa de candidatos por bucket — **você escolhe quais auditar** (até ${input.k} por bucket).
+Você é o auditor-agentic. Use as tools disponíveis pra detectar divergências entre o reasoning do agente qualificador e o gabarito (answer key), classificar origem e propor ajustes.
 
 ## Gabarito (answer key)
 
@@ -534,29 +532,20 @@ ${input.gabarito}
 
 ${input.contextoMomento}
 
-## Buckets ativos com todas as decisões disponíveis
+## Buckets ativos com representantes amostrados
 
 ${bucketsSection}
 
 ## Fluxo esperado
 
-0. **Escolha de representantes**: pra cada bucket, escolha até ${input.k} decisões pra auditar. A skill \`choose-representatives\` (auto-injetada no seu system prompt + body em \`.agents/skills/choose-representatives/SKILL.md\`) detalha os critérios. Resumo: prioriza divergência aparente do gabarito > diversidade de lead > random. Se bucket tem ≤${input.k} decisões, audite todas. Use \`read\` se precisar do detalhe ou references.
-1. Pra cada escolhido, chame \`detect_divergences(decision_id)\`. Pode paralelizar entre buckets distintos.
+1. Pra cada \`decision_id\` listado, chame \`detect_divergences(decision_id)\`. Faça em sequência, uma decisão por vez.
 2. Junte todas as divergências retornadas. Deduplique por \`(heuristic_ignored, bucket_key)\` — uma divergência por par.
 3. Pra cada divergência única, chame \`classify_origin(decision_id, bucket_key, heuristic_ignored, evidence, severity)\`.
 4. Se \`target\` retornar diferente de \`inconclusive\`, chame em seguida \`suggest_adjustment(...mesmos args + target)\`.
 5. Ao final, chame \`summarize_patterns(divergences)\` passando a lista deduplicada completa.
 6. Devolva o resultado no schema final: \`divergences[]\`, \`classifications[]\`, \`patterns[]\`, \`cross_bucket_signal\`.
 
-Cap duro: o tool \`detect_divergences\` rejeita chamadas além de ${input.k} no mesmo bucket. Escolha bem antes de chamar.
-
-Princípios: cite evidência literal do \`reasoned\`/\`out_of_scope\`; marque \`inconclusive\` quando faltar dado; não invoque tools redundantes.
-
-## Formato do output final
-
-Entre os marcadores \`---RESULT_START---\` e \`---RESULT_END---\` coloque **JSON puro, sem cerca de markdown** (sem \`\`\`json\`\`\`). O parser do framework lê o conteúdo cru entre os marcadores.
-
-Não escreva o resultado em arquivo temporário e nem leia skills de "verificação extra" depois de já ter chamado as tools necessárias — emita o JSON direto entre os marcadores e termine a sessão.`;
+Princípios: cite evidência literal do \`reasoned\`/\`out_of_scope\`; marque \`inconclusive\` quando faltar dado; não invoque tools redundantes.`;
 }
 
 async function updateCheckpoint(env: Env, agentId: string, ts: number): Promise<void> {
@@ -654,3 +643,10 @@ function sanitizeId(input: string): string {
   return input.replace(/[^a-zA-Z0-9-]/g, '-').slice(0, 60);
 }
 
+function hashSeed(input: string): number {
+  let hash = 0;
+  for (let i = 0; i < input.length; i++) {
+    hash = (hash * 31 + input.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash);
+}

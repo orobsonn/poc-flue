@@ -11,8 +11,10 @@ export type RunMetrics = {
   latency_ms_total: number;
   llm_calls_count: number;
   mode: 'pipeline' | 'agentic';
+  stage?: 1 | 2 | 3 | 4;
   reps_audited_total?: number;
   reps_audited_per_bucket?: Record<string, number>;
+  queries_made?: number;
 };
 
 /** @description Persiste métricas do run em monitor-runs/<runId>/metrics.json no FAW pra comparação cross-stage. */
