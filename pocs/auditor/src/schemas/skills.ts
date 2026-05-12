@@ -63,6 +63,36 @@ export const SummarizePatternsOutputSchema = v.object({
 });
 export type SummarizePatternsOutput = v.InferOutput<typeof SummarizePatternsOutputSchema>;
 
+/** @description Schema de output do auditor-agentic — agrega divergências, classificações e padrões num único output do loop agêntico. */
+export const AgenticAuditOutputSchema = v.object({
+  divergences: v.array(v.object({
+    decision_id: v.string(),
+    bucket_key: v.string(),
+    heuristic_ignored: v.string(),
+    evidence: v.string(),
+    severity: v.picklist(['low', 'med', 'high']),
+  })),
+  classifications: v.array(v.object({
+    decision_id: v.string(),
+    heuristic_ignored: v.string(),
+    target: v.union([TargetSchema, v.literal('inconclusive')]),
+    rationale: v.string(),
+    proposed_change: v.nullable(v.string()),
+    target_file: v.nullable(v.string()),
+    suggestion_rationale: v.nullable(v.string()),
+  })),
+  patterns: v.array(v.object({
+    type: v.picklist(['mechanism-divergence', 'gabarito-stale', 'criterio-faltando', 'contexto-mudou']),
+    description: v.string(),
+    affected_buckets: v.array(v.string()),
+    inferred_decisions: v.number(),
+    confidence: v.picklist(['high', 'med', 'low']),
+    promotion_recommendation: v.picklist(['finding', 'wait', 'discard']),
+  })),
+  cross_bucket_signal: v.nullable(v.string()),
+});
+export type AgenticAuditOutput = v.InferOutput<typeof AgenticAuditOutputSchema>;
+
 /** @description Schema de output da skill qualificar-lead (qualificador hipotético). */
 export const QualificarLeadOutputSchema = v.object({
   outcome: JudgmentOutcomeSchema,

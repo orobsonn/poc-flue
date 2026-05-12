@@ -1,6 +1,6 @@
 import type { FlueContext } from '@flue/sdk/client';
 import { generateRun, pickModeForHour } from '@/lib/synthetic-generator';
-import type { SyntheticMode } from '@/lib/synthetic-modes';
+import { MODE_CONFIGS, type SyntheticMode } from '@/lib/synthetic-modes';
 import leads from '../../fixtures/leads.json';
 import scenarios from '../../fixtures/scenarios.json';
 
@@ -12,12 +12,16 @@ type Env = {
   MODEL_MAIN?: string;
 };
 
-/** @description Endpoint sintético — gera N decisions no D1 conforme mode escolhido por hora UTC. */
-export default async function (ctx: FlueContext<unknown, Env>): Promise<unknown> {
+type Payload = { mode?: string };
+
+/** @description Endpoint sintético — gera N decisions no D1. Mode por hora UTC ou override via payload.mode. */
+export default async function (ctx: FlueContext<Payload, Env>): Promise<unknown> {
   const env = ctx.env;
   const now = new Date();
   const hour = now.getUTCHours();
-  const mode = pickModeForHour(scenarios as Array<{ from_hour: number; to_hour: number; mode: SyntheticMode }>, hour);
+  const overrideRaw = ctx.payload?.mode;
+  const override = overrideRaw && overrideRaw in MODE_CONFIGS ? (overrideRaw as SyntheticMode) : null;
+  const mode = override ?? pickModeForHour(scenarios as Array<{ from_hour: number; to_hour: number; mode: SyntheticMode }>, hour);
   const result = await generateRun(
     env,
     leads as Parameters<typeof generateRun>[1],
