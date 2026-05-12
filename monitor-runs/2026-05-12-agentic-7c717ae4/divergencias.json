@@ -1,0 +1,37 @@
+[
+  {
+    "decision_id": "d-1778621596142-6",
+    "bucket_key": "descartar/A/0",
+    "heuristic_ignored": "H6 — Default por tier A",
+    "evidence": "descartar mesmo tier A — interlocutor sinalizou descomprometimento na call",
+    "severity": "high"
+  },
+  {
+    "decision_id": "d-1778621596142-6",
+    "bucket_key": "descartar/A/0",
+    "heuristic_ignored": "H1 — Fundador técnico em fase de produto",
+    "evidence": "descartar mesmo tier A — interlocutor sinalizou descomprometimento na call",
+    "severity": "high"
+  },
+  {
+    "decision_id": "d-1778621596142-6",
+    "bucket_key": "descartar/A/0",
+    "heuristic_ignored": "H2 — Dor específica em hipótese não validada",
+    "evidence": "descartar mesmo tier A — interlocutor sinalizou descomprometimento na call",
+    "severity": "high"
+  },
+  {
+    "decision_id": "d-1778621596106-7",
+    "bucket_key": "priorizar/A/1",
+    "heuristic_ignored": "H2 — Dor específica em hipótese não validada",
+    "evidence": "priorizar porque fundador técnico em fase de produto → feedback acelera roadmap (H1)",
+    "severity": "med"
+  },
+  {
+    "decision_id": "d-1778621596138-3",
+    "bucket_key": "manter/B/1",
+    "heuristic_ignored": "H4 — Sinal forte com fit médio",
+    "evidence": "manter porque tier objetivo B → fit médio sem sinal compensatório",
+    "severity": "high"
+  }
+]
