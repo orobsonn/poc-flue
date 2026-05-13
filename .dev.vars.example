@@ -1,0 +1,28 @@
+# Template de secrets do monorepo poc-flue.
+# Copie pra .dev.vars (na raiz) e preencha. NUNCA commitar .dev.vars.
+# Cada POC importa via `flue dev --env ../../.dev.vars`.
+
+# --- Cloudflare (deploy + Workers AI) ---
+# ID da conta Cloudflare onde os Workers vivem.
+CLOUDFLARE_ACCOUNT_ID=
+# API token com permissão de deploy (Workers Scripts: Edit).
+CLOUDFLARE_API_TOKEN=
+
+# --- AI Gateway (centraliza chamadas LLM, dá observabilidade + cache + retry) ---
+# Nome do gateway criado no painel Cloudflare (ex: poc-flue).
+CLOUDFLARE_AI_GATEWAY_ID=
+# Token de autenticação do gateway.
+CLOUDFLARE_AI_GATEWAY_TOKEN=
+
+# --- POC: auditor ---
+# Segredo HMAC pra pseudonimizar agent_id/lead_id antes de gravar no D1.
+# Gere com: openssl rand -hex 32
+HMAC_SECRET=
+# Repo onde o auditor abre PR de proposta de ajuste (owner/repo).
+GITHUB_REPO=
+# Personal Access Token com escopo `repo` (mínimo necessário pra abrir PR).
+GITHUB_PAT=
+# Bot do Telegram que recebe alertas críticos (criar via @BotFather).
+TELEGRAM_BOT_TOKEN=
+# Chat ID que recebe os alertas (DM ou grupo onde o bot foi adicionado).
+TELEGRAM_CHAT_ID=
