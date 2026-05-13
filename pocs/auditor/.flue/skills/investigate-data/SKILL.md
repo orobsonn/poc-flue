@@ -1,6 +1,6 @@
 ---
 name: investigate-data
-description: Como investigar tendências e padrões cross-janela no D1 do qualificador usando a tool `query_decision_log(sql)`. Útil pra detectar regressão, growth de out_of_scope, blow-out de custo, ou validar se um padrão observado no run atual aparece em janelas anteriores. NÃO é um tool — é conhecimento ambiente. A tool tem cap (10 queries/run, max 100 rows, só SELECT em decision_log/lead). Use antes de finalizar o summarize quando quiser confirmar se um padrão é sistêmico ou pontual. Consulte references/ pra queries prontas (tendência) e padrões de exploração ad-hoc.
+description: Como investigar tendências e padrões cross-janela no D1 do qualificador usando a tool `query_decision_log(sql)`. Útil pra detectar regressão, growth de out_of_scope, blow-out de custo, ou validar se um padrão observado no run atual aparece em janelas anteriores. NÃO é um tool — é conhecimento ambiente. A tool tem cap (10 queries/run, max 100 rows, só SELECT em decision_log/lead). Use antes de finalizar o summarize quando quiser confirmar se um padrão é sistêmico ou pontual. Consulte `.agents/skills/investigate-data/references/` pra queries prontas (tendência) e padrões de exploração ad-hoc.
 model: main
 ---
 
@@ -121,6 +121,17 @@ LIMIT 20;
 3. **Que LIMIT esperar?** Se a hipótese é "padrão sistêmico", espera > 5 rows. Se é "outlier", espera 0-1.
 4. **Após o resultado**, escreva o que aprendeu — esse aprendizado vai pro `description` do pattern em `summarize_patterns` ou pro `cross_bucket_signal`.
 
-Pra exemplos detalhados de cada tipo de query, consulte:
-- `references/queries-de-tendencia.md` — métricas cross-janela (regression, oos_growth, budget_blow)
-- `references/queries-de-exploracao.md` — investigação ad-hoc (outlier, repetição, cross-bucket)
+## Antes de promover a `cross_bucket_signal`
+
+`cross_bucket_signal` é o gatilho de `severity=critical` no run e dispara PR + alerta Telegram. **Não promova sem evidência de volume.** Regras duras:
+
+1. **Amostra mínima — 20 decisões agregadas nas duas janelas**: pra afirmar "padrão sistêmico" (ex: "X% das decisões `descartar/A` mencionam Y"), o conjunto agregado (janela atual + janela anterior, ou cross-bucket) precisa ter **≥ 20 decisões reais** vindas de query — não da lista inline. Abaixo disso, marque `confidence: low` no pattern e use linguagem de **hipótese** (`indica padrão a confirmar em próxima janela`, não `padrão sistêmico confirmado`).
+2. **N na lista de candidatos inline ≠ evidência cross-bucket**: os 9-20 candidatos do prompt já passaram pelo filtro de bucketing. Eles **não** representam o universo. Se a query retornou 4 decisões anteriores + os 5 candidatos atuais, isso é 9 — fica abaixo do mínimo.
+3. **Reasoning literal vindo de template fixo**: se o `reasoned` que sustenta o padrão é frase-cópia (ex: `"descartar mesmo tier A — interlocutor sinalizou descomprometimento na call"` aparecendo idêntico em todas as decisões), suspeite de **gerador sintético** — não vire `cross_bucket_signal` baseado nisso. Note no `description` que o padrão pode ser artefato.
+4. **Quando vale `cross_bucket_signal`**: 2+ buckets estruturalmente distintos (ex: `descartar/A/0` E `priorizar/A/1`) mostrando o mesmo heurístico ignorado, **com ≥ 20 decisões na agregação cross-bucket via query**, E reasonings variados (não template). Sem os 3 critérios, mantenha o achado dentro de `patterns[]` com `promotion_recommendation: 'wait'` e descrição cautelosa.
+
+Quando em dúvida, **prefira `null`** em `cross_bucket_signal` e deixe o pattern em `patterns[]` com `confidence: low`. Falso positivo crítico custa muito mais que falso negativo no Stage 3 (PR + Telegram disparados a toa).
+
+Pra exemplos detalhados de cada tipo de query, leia via tool `read` (paths absolutos no sandbox):
+- `.agents/skills/investigate-data/references/queries-de-tendencia.md` — métricas cross-janela (regression, oos_growth, budget_blow)
+- `.agents/skills/investigate-data/references/queries-de-exploracao.md` — investigação ad-hoc (outlier, repetição, cross-bucket)

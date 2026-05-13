@@ -1,6 +1,6 @@
 ---
 name: choose-representatives
-description: Como escolher K representantes pra auditar dentro de um bucket de decisões. Prioriza divergência aparente do gabarito > diversidade de lead > random. NÃO é um tool — é conhecimento ambiente consultado pelo auditor agêntico antes de chamar `detect_divergences`. Se bucket tem ≤K decisões, audite todas e pule a escolha. Consulte references/ pra padrões linguísticos detalhados.
+description: Como escolher K representantes pra auditar dentro de um bucket de decisões. Prioriza divergência aparente do gabarito > diversidade de lead > random. NÃO é um tool — é conhecimento ambiente consultado pelo auditor agêntico antes de chamar `detect_divergences`. Se bucket tem ≤K decisões, audite todas e pule a escolha. Consulte `.agents/skills/choose-representatives/references/` pra padrões linguísticos detalhados.
 model: main
 ---
 
@@ -81,4 +81,4 @@ Escolha 3 com leads em segmentos distintos: 1 saas+founder técnico, 1 agência+
 
 Esta skill **não retorna nada estruturado** — é conhecimento ambiente. Após consultar, simplesmente chame `detect_divergences(decision_id)` nos K escolhidos.
 
-Para padrões linguísticos detalhados de "justificativa subjetiva" e "contradição interna", consulte `references/sinais-de-divergencia-aparente.md`.
+Para padrões linguísticos detalhados de "justificativa subjetiva" e "contradição interna", leia via `read .agents/skills/choose-representatives/references/sinais-de-divergencia-aparente.md`.
