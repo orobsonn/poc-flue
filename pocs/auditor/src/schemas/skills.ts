@@ -93,6 +93,42 @@ export const AgenticAuditOutputSchema = v.object({
 });
 export type AgenticAuditOutput = v.InferOutput<typeof AgenticAuditOutputSchema>;
 
+/** @description Stage 4: agente devolve também janela escolhida, contagens e severity (não há pipeline imperativo computando). */
+export const AgenticStage4OutputSchema = v.object({
+  from_ts: v.number(),
+  to_ts: v.number(),
+  candidates_scanned: v.number(),
+  buckets_active: v.number(),
+  divergences: v.array(v.object({
+    decision_id: v.string(),
+    bucket_key: v.string(),
+    heuristic_ignored: v.string(),
+    evidence: v.string(),
+    severity: v.picklist(['low', 'med', 'high']),
+  })),
+  classifications: v.array(v.object({
+    decision_id: v.string(),
+    heuristic_ignored: v.string(),
+    target: v.union([TargetSchema, v.literal('inconclusive')]),
+    rationale: v.string(),
+    proposed_change: v.nullable(v.string()),
+    target_file: v.nullable(v.string()),
+    suggestion_rationale: v.nullable(v.string()),
+  })),
+  patterns: v.array(v.object({
+    type: v.picklist(['mechanism-divergence', 'gabarito-stale', 'criterio-faltando', 'contexto-mudou']),
+    description: v.string(),
+    affected_buckets: v.array(v.string()),
+    inferred_decisions: v.number(),
+    confidence: v.picklist(['high', 'med', 'low']),
+    promotion_recommendation: v.picklist(['finding', 'wait', 'discard']),
+  })),
+  cross_bucket_signal: v.nullable(v.string()),
+  severity: v.picklist(['critical', 'warn', 'info', 'none']),
+  rationale: v.string(),
+});
+export type AgenticStage4Output = v.InferOutput<typeof AgenticStage4OutputSchema>;
+
 /** @description Schema de output da skill qualificar-lead (qualificador hipotético). */
 export const QualificarLeadOutputSchema = v.object({
   outcome: JudgmentOutcomeSchema,

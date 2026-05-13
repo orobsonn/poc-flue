@@ -15,6 +15,7 @@ export type RunMetrics = {
   reps_audited_total?: number;
   reps_audited_per_bucket?: Record<string, number>;
   queries_made?: number;
+  tool_calls_total?: number;
 };
 
 /** @description Persiste métricas do run em monitor-runs/<runId>/metrics.json no FAW pra comparação cross-stage. */
