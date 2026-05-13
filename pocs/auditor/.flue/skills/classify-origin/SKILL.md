@@ -14,11 +14,13 @@ Você categoriza a ORIGEM de uma divergência entre 4 alvos possíveis.
 - `contexto_momento`: markdown do contexto-momento.md (fase, capacidade, foco, hipóteses não validadas)
 
 ## Decision tree
-1. O heurístico foi ignorado mas o gabarito está claro e atual? → `prompt-issue` (carregue `references/prompt-issue.md`)
-2. O heurístico está desatualizado em relação ao **contexto_momento atual** (ex: gabarito ainda assume fase de produto que `contexto_momento` indica como já encerrada)? Compare o `reasoned` da divergência com `contexto_momento` — se o gabarito conflita com a fase/capacidade/foco descritos lá, é `gabarito-stale` (carregue `references/gabarito-stale.md`)
-3. A divergência aponta critério que não existe na rubrica objetiva? → `criterio-faltando` (carregue `references/criterio-faltando.md`)
-4. O `contexto_momento` mudou (nova capacidade, novo foco, hipótese antes válida agora inválida) e o gabarito ainda reflete o estado anterior? Compare o `reasoned` da divergência com `contexto_momento` para confirmar o desalinhamento → `contexto-mudou` (carregue `references/contexto-mudou.md`)
+1. O heurístico foi ignorado mas o gabarito está claro e atual? → `prompt-issue` (carregue `.agents/skills/classify-origin/references/prompt-issue.md`)
+2. O heurístico está desatualizado em relação ao **contexto_momento atual** (ex: gabarito ainda assume fase de produto que `contexto_momento` indica como já encerrada)? Compare o `reasoned` da divergência com `contexto_momento` — se o gabarito conflita com a fase/capacidade/foco descritos lá, é `gabarito-stale` (carregue `.agents/skills/classify-origin/references/gabarito-stale.md`)
+3. A divergência aponta critério que não existe na rubrica objetiva? → `criterio-faltando` (carregue `.agents/skills/classify-origin/references/criterio-faltando.md`)
+4. O `contexto_momento` mudou (nova capacidade, novo foco, hipótese antes válida agora inválida) e o gabarito ainda reflete o estado anterior? Compare o `reasoned` da divergência com `contexto_momento` para confirmar o desalinhamento → `contexto-mudou` (carregue `.agents/skills/classify-origin/references/contexto-mudou.md`)
 5. Nenhuma das anteriores? → `inconclusive`
+
+> Paths das references são absolutos dentro do sandbox. Use a tool `read` com o path completo.
 
 ## Output
 ```json

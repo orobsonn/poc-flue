@@ -1,0 +1,343 @@
+{
+  "run_id": "2026-05-12-agentic-e0d93372",
+  "agent_id_url": "smoke-1778592566",
+  "exported_at": "2026-05-12T18:02:07.894Z",
+  "metrics": {
+    "run_id": "2026-05-12-agentic-e0d93372",
+    "mode": "agentic",
+    "severity": "info",
+    "divergences_detected": 0,
+    "classifications_succeeded": 0,
+    "candidates": 2,
+    "buckets_active": 2,
+    "latency_ms_total": 47117,
+    "llm_calls_count": 2,
+    "ts_utc": "2026-05-12T13:30:13.420Z"
+  },
+  "artifacts": {
+    "analysis.md": "# Run 2026-05-12-agentic-e0d93372\n\nWindow: 2026-05-12T07:29:26.320Z → 2026-05-12T13:29:26.320Z\n\nModo: agentic (Stage 1)\nCandidatos: 2\nBuckets ativos: 2\nSeveridade: **info**\n\n## Critérios SQL\n- out_of_scope_growth: ok (Δ 4.0pp)\n- regression: ok (Δ 0.0%)\n- budget_blow: ok (Δ 0.0%)\n",
+    "proposal.md": "# Sugestões de Ajuste\n",
+    "divergencias.json": "[]"
+  },
+  "session_count": 3,
+  "sessions": [
+    {
+      "id": "agent-session:[\"smoke-1778592566\",\"detect-d-1778592437432-5-2026-05-12-agentic-e0d93372\"]",
+      "kind": "detect",
+      "decision_id": "d-1778592437432-5",
+      "updated_at": 1778592590239,
+      "data": {
+        "version": 2,
+        "entries": [
+          {
+            "type": "message",
+            "id": "09e8e67b",
+            "parentId": null,
+            "timestamp": "2026-05-12T13:29:50.238Z",
+            "message": {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "You are running in headless mode with no human operator. Work autonomously — never ask questions, never wait for user input. Make your best judgment and proceed independently.\n\n# Detect Divergences\n\nVocê inspeciona o mecanismo do raciocínio de UMA decisão contra um gabarito.\n\n## Input\n- `decision`: { id, did, reasoned, out_of_scope }\n- `gabarito`: markdown completo com heurísticos H1, H2, ...\n\n## Operação\nPra cada heurístico do gabarito:\n1. Determine se as condições do heurístico se aplicam à decisão (com base nos campos disponíveis)\n2. Se aplicam: o `reasoned` invocou esse heurístico explicitamente?\n3. Se não invocou: registre divergência\n\n## Formato de cada divergência\n```json\n{\n  \"heuristic_ignored\": \"<citação literal do heurístico do gabarito>\",\n  \"evidence\": \"<citação literal do reasoned>\",\n  \"severity\": \"low|med|high\"\n}\n```\n\n## Severidade\n- `high`: heurístico que, se aplicado, mudaria o outcome\n- `med`: heurístico relevante mas que não alteraria outcome\n- `low`: heurístico marginalmente aplicável\n\n## NÃO FAZER\n- Não inferir condições do heurístico que não estão visíveis nos campos\n- Não classificar origem (isso é skill diferente)\n- Não sugerir correção (isso é skill diferente)\n- Marcar `inconclusive` em vez de adivinhar\n\nArguments:\n{\n  \"decision\": {\n    \"id\": \"d-1778592437432-5\",\n    \"did\": \"descartar\",\n    \"reasoned\": \"descartar porque tier objetivo C → custo de oportunidade do time supera valor\",\n    \"out_of_scope\": \"faltou dado sobre maturidade do time pra avaliar capacidade de absorção\"\n  },\n  \"lead\": {\n    \"id\": \"L10\",\n    \"segmento\": \"outro\",\n    \"faturamento_band\": \"0-50k\",\n    \"time_vendas\": \"solo\",\n    \"ferramentas\": \"planilha\",\n    \"sinal\": \"material\",\n    \"fundador_tecnico\": 0,\n    \"menciona_dor\": 0,\n    \"contexto_livre_sanitized\": \"blogueiro testando ferramentas\"\n  },\n  \"gabarito\": \"# Gabarito — Fit Estratégico no Momento Atual\\n\\nHeurísticos no formato \\\"condição → ação, porque mecanismo\\\".\\n\\n## H1 — Fundador técnico em fase de produto\\nSe o lead tem fundador técnico/CTO AND contexto-momento indica fase de produto,\\n→ priorizar mesmo se score objetivo médio,\\nporque feedback técnico de fundador acelera roadmap mais que receita marginal.\\n\\n## H2 — Dor específica em hipótese não validada\\nSe o lead menciona dor X que coincide com hipótese não validada do produto,\\n→ priorizar independente de tamanho,\\nporque valor de aprendizado supera custo de oportunidade.\\n\\n## H3 — Enterprise sem capacidade\\nSe o lead tem segmento enterprise (faturamento > R$ 1M/mês) AND capacidade atual não suporta,\\n→ manter mesmo com score alto,\\nporque vender sem entregar queima reputação.\\n\\n## H4 — Sinal forte com fit médio\\nSe o lead pediu demo direta AND score objetivo é B,\\n→ priorizar,\\nporque sinal forte de intenção compensa fit médio em janela de aprendizado.\\n\\n## H5 — Score baixo sem sinal compensatório\\nSe score objetivo é C AND nenhum dos heurísticos acima se aplica,\\n→ descartar,\\nporque custo de oportunidade do time supera valor esperado.\\n\\n## H6 — Default por tier A\\nSe score objetivo é A AND nenhum heurístico acima dispara em sentido contrário (H3 enterprise),\\n→ priorizar,\\nporque o tier A já refletiu fit estrutural alto na rubrica determinística — só inverter mediante motivo registrado.\\n\\n## H7 — Default por tier B\\nSe score objetivo é B AND nenhum heurístico acima dispara,\\n→ manter,\\nporque tier B é fit médio — manter mantém opcionalidade sem queimar capacidade.\\n\",\n  \"active_findings\": []\n}\nWhen complete, you MUST output your result between these exact delimiters conforming to this schema:\n\n```json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"divergences\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"heuristic_ignored\": {\n            \"type\": \"string\"\n          },\n          \"evidence\": {\n            \"type\": \"string\"\n          },\n          \"severity\": {\n            \"enum\": [\n              \"low\",\n              \"med\",\n              \"high\"\n            ],\n            \"type\": \"string\"\n          }\n        },\n        \"required\": [\n          \"heuristic_ignored\",\n          \"evidence\",\n          \"severity\"\n        ]\n      }\n    }\n  },\n  \"required\": [\n    \"divergences\"\n  ]\n}\n```\n\nExample: (Object)\n---RESULT_START---\n{\"key\": \"value\"}\n---RESULT_END---\n\nExample: (String)\n---RESULT_START---\nHello, world!\n---RESULT_END---"
+                }
+              ],
+              "timestamp": 1778592574723
+            },
+            "source": "skill"
+          },
+          {
+            "type": "message",
+            "id": "d67e2089",
+            "parentId": "09e8e67b",
+            "timestamp": "2026-05-12T13:29:50.238Z",
+            "message": {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "thinking",
+                  "thinking": "Let me analyze this decision against the gabarito of heurísticos.\n\nDecision:\n- id: d-1778592437432-5\n- did: \"descartar\"\n- reasoned: \"descartar porque tier objetivo C → custo de oportunidade do time supera valor\"\n- out_of_scope: \"faltou dado sobre maturidade do time pra avaliar capacidade de absorção\"\n\nLead data:\n- segmento: \"outro\"\n- faturamento_band: \"0-50k\"\n- time_vendas: \"solo\"\n- ferramentas: \"planilha\"\n- sinal: \"material\"\n- fundador_tecnico: 0\n- menciona_dor: 0\n- contexto_livre_sanitized: \"blogueiro testando ferramentas\"\n\nGabarito heurísticos:\n\n**H1** — Fundador técnico em fase de produto\n- Se lead tem fundador técnico/CTO AND contexto-momento indica fase de produto → priorizar\n- Lead: fundador_tecnico = 0. Condition not met. Não se aplica.\n\n**H2** — Dor específica em hipótese não validada\n- Se lead menciona dor X que coincide com hipótese não validada → priorizar\n- Lead: menciona_dor = 0. Condition not met. Não se aplica.\n\n**H3** — Enterprise sem capacidade\n- Se segmento enterprise (faturamento > R$ 1M/mês) AND capacidade atual não suporta → manter\n- Lead: faturamento_band = \"0-50k\". Not enterprise. Condition not met. Não se aplica.\n\n**H4** — Sinal forte com fit médio\n- Se lead pediu demo direta AND score objetivo é B → priorizar\n- Lead: sinal = \"material\" (not demo direta). Condition not met. Não se aplica.\n\n**H5** — Score baixo sem sinal compensatório\n- Se score objetivo é C AND nenhum dos heurísticos acima se aplica → descartar\n- The decision says \"tier objetivo C\" → score objetivo C\n- H1, H2, H3, H4 don't apply based on lead data\n- The decision is \"descartar\" which matches H5\n- The reasoned says \"descartar porque tier objetivo C → custo de oportunidade do time supera valor\" which captures the essence of H5\n- So H5 is NOT ignored; it's applied.\n\n**H6** — Default por tier A\n- Se score objetivo é A → priorizar\n- Score is C, not A. Não se aplica.\n\n**H7** — Default por tier B\n- Se score objetivo é B → manter\n- Score is C, not B. Não se aplica.\n\nSo there are no divergences. The decision correctly applied H5. The reasoned explicitly mentions tier C and custo de oportunidade, which aligns with H5's logic.\n\nWait, let me be careful. The heuristic H5 says:\n\"Se score objetivo é C AND nenhum dos heurísticos acima se aplica,\n→ descartar,\nporque custo de oportunidade do time supera valor esperado.\"\n\nThe reasoned says: \"descartar porque tier objetivo C → custo de oportunidade do time supera valor\"\n\nThis is essentially invoking H5. The wording \"custo de oportunidade do time supera valor\" matches the heuristic's \"custo de oportunidade do time supera valor esperado\". \n\nTherefore, there are no divergences. The output should be an empty divergences array.\n\nWait, let me double-check H1. The lead has fundador_tecnico = 0, so definitely no.\n\nH2: menciona_dor = 0, so no.\n\nH3: faturamento_band is \"0-50k\", not enterprise. So no.\n\nH4: sinal is \"material\", not \"demo direta\". So no.\n\nH5: Applies. The reasoned invokes it (tier C + custo de oportunidade). Not ignored.\n\nH6, H7: Don't apply due to tier.\n\nSo result is empty divergences.\n\nOne more check: is there any inference I shouldn't make? The reasoned explicitly says \"tier objetivo C\" which is the condition for H5. And the outcome (descartar) matches H5. The mechanism cited (\"custo de oportunidade do time supera valor\") closely matches H5's mechanism (\"custo de oportunidade do time supera valor esperado\"). So H5 was explicitly invoked.\n\nTherefore, divergences = [].\n\nLet me output the result.",
+                  "thinkingSignature": "reasoning_content"
+                },
+                {
+                  "type": "text",
+                  "text": "---RESULT_START---\n{\"divergences\": []}\n---RESULT_END---"
+                }
+              ],
+              "api": "openai-completions",
+              "provider": "cloudflare-workers-ai",
+              "model": "@cf/moonshotai/kimi-k2.6",
+              "usage": {
+                "input": 2516,
+                "output": 1074,
+                "cacheRead": 576,
+                "cacheWrite": 0,
+                "totalTokens": 4166,
+                "cost": {
+                  "input": 0.0023902,
+                  "output": 0.0042959999999999995,
+                  "cacheRead": 0.00009216,
+                  "cacheWrite": 0,
+                  "total": 0.00677836
+                }
+              },
+              "stopReason": "stop",
+              "timestamp": 1778592574723,
+              "responseId": "id-1778592580013"
+            },
+            "source": "skill"
+          }
+        ],
+        "leafId": "d67e2089",
+        "metadata": {},
+        "createdAt": "2026-05-12T13:29:34.719Z",
+        "updatedAt": "2026-05-12T13:29:50.238Z"
+      }
+    },
+    {
+      "id": "agent-session:[\"smoke-1778592566\",\"detect-d-1778592437478-5-2026-05-12-agentic-e0d93372\"]",
+      "kind": "detect",
+      "decision_id": "d-1778592437478-5",
+      "updated_at": 1778592600002,
+      "data": {
+        "version": 2,
+        "entries": [
+          {
+            "type": "message",
+            "id": "1213c0f9",
+            "parentId": null,
+            "timestamp": "2026-05-12T13:30:00.000Z",
+            "message": {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "You are running in headless mode with no human operator. Work autonomously — never ask questions, never wait for user input. Make your best judgment and proceed independently.\n\n# Detect Divergences\n\nVocê inspeciona o mecanismo do raciocínio de UMA decisão contra um gabarito.\n\n## Input\n- `decision`: { id, did, reasoned, out_of_scope }\n- `gabarito`: markdown completo com heurísticos H1, H2, ...\n\n## Operação\nPra cada heurístico do gabarito:\n1. Determine se as condições do heurístico se aplicam à decisão (com base nos campos disponíveis)\n2. Se aplicam: o `reasoned` invocou esse heurístico explicitamente?\n3. Se não invocou: registre divergência\n\n## Formato de cada divergência\n```json\n{\n  \"heuristic_ignored\": \"<citação literal do heurístico do gabarito>\",\n  \"evidence\": \"<citação literal do reasoned>\",\n  \"severity\": \"low|med|high\"\n}\n```\n\n## Severidade\n- `high`: heurístico que, se aplicado, mudaria o outcome\n- `med`: heurístico relevante mas que não alteraria outcome\n- `low`: heurístico marginalmente aplicável\n\n## NÃO FAZER\n- Não inferir condições do heurístico que não estão visíveis nos campos\n- Não classificar origem (isso é skill diferente)\n- Não sugerir correção (isso é skill diferente)\n- Marcar `inconclusive` em vez de adivinhar\n\nArguments:\n{\n  \"decision\": {\n    \"id\": \"d-1778592437478-5\",\n    \"did\": \"priorizar\",\n    \"reasoned\": \"priorizar porque menciona dor específica em hipótese não validada → valor de aprendizado supera custo (H2)\",\n    \"out_of_scope\": \"faltou dado sobre maturidade do time pra avaliar capacidade de absorção\"\n  },\n  \"lead\": {\n    \"id\": \"L18\",\n    \"segmento\": \"infoprodutor\",\n    \"faturamento_band\": \"50k-500k\",\n    \"time_vendas\": \"solo\",\n    \"ferramentas\": \"crm\",\n    \"sinal\": \"form\",\n    \"fundador_tecnico\": 0,\n    \"menciona_dor\": 1,\n    \"contexto_livre_sanitized\": \"menciona dor específica de explicabilidade do agente\"\n  },\n  \"gabarito\": \"# Gabarito — Fit Estratégico no Momento Atual\\n\\nHeurísticos no formato \\\"condição → ação, porque mecanismo\\\".\\n\\n## H1 — Fundador técnico em fase de produto\\nSe o lead tem fundador técnico/CTO AND contexto-momento indica fase de produto,\\n→ priorizar mesmo se score objetivo médio,\\nporque feedback técnico de fundador acelera roadmap mais que receita marginal.\\n\\n## H2 — Dor específica em hipótese não validada\\nSe o lead menciona dor X que coincide com hipótese não validada do produto,\\n→ priorizar independente de tamanho,\\nporque valor de aprendizado supera custo de oportunidade.\\n\\n## H3 — Enterprise sem capacidade\\nSe o lead tem segmento enterprise (faturamento > R$ 1M/mês) AND capacidade atual não suporta,\\n→ manter mesmo com score alto,\\nporque vender sem entregar queima reputação.\\n\\n## H4 — Sinal forte com fit médio\\nSe o lead pediu demo direta AND score objetivo é B,\\n→ priorizar,\\nporque sinal forte de intenção compensa fit médio em janela de aprendizado.\\n\\n## H5 — Score baixo sem sinal compensatório\\nSe score objetivo é C AND nenhum dos heurísticos acima se aplica,\\n→ descartar,\\nporque custo de oportunidade do time supera valor esperado.\\n\\n## H6 — Default por tier A\\nSe score objetivo é A AND nenhum heurístico acima dispara em sentido contrário (H3 enterprise),\\n→ priorizar,\\nporque o tier A já refletiu fit estrutural alto na rubrica determinística — só inverter mediante motivo registrado.\\n\\n## H7 — Default por tier B\\nSe score objetivo é B AND nenhum heurístico acima dispara,\\n→ manter,\\nporque tier B é fit médio — manter mantém opcionalidade sem queimar capacidade.\\n\",\n  \"active_findings\": []\n}\nWhen complete, you MUST output your result between these exact delimiters conforming to this schema:\n\n```json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"divergences\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"heuristic_ignored\": {\n            \"type\": \"string\"\n          },\n          \"evidence\": {\n            \"type\": \"string\"\n          },\n          \"severity\": {\n            \"enum\": [\n              \"low\",\n              \"med\",\n              \"high\"\n            ],\n            \"type\": \"string\"\n          }\n        },\n        \"required\": [\n          \"heuristic_ignored\",\n          \"evidence\",\n          \"severity\"\n        ]\n      }\n    }\n  },\n  \"required\": [\n    \"divergences\"\n  ]\n}\n```\n\nExample: (Object)\n---RESULT_START---\n{\"key\": \"value\"}\n---RESULT_END---\n\nExample: (String)\n---RESULT_START---\nHello, world!\n---RESULT_END---"
+                }
+              ],
+              "timestamp": 1778592574723
+            },
+            "source": "skill"
+          },
+          {
+            "type": "message",
+            "id": "1b0104ca",
+            "parentId": "1213c0f9",
+            "timestamp": "2026-05-12T13:30:00.000Z",
+            "message": {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "thinking",
+                  "thinking": "Let me analyze this decision against the gabarito.\n\nDecision:\n- id: \"d-1778592437478-5\"\n- did: \"priorizar\"\n- reasoned: \"priorizar porque menciona dor específica em hipótese não validada → valor de aprendizado supera custo (H2)\"\n- out_of_scope: \"faltou dado sobre maturidade do time pra avaliar capacidade de absorção\"\n\nLead data:\n- id: \"L18\"\n- segmento: \"infoprodutor\"\n- faturamento_band: \"50k-500k\"\n- time_vendas: \"solo\"\n- ferramentas: \"crm\"\n- sinal: \"form\"\n- fundador_tecnico: 0\n- menciona_dor: 1\n- contexto_livre_sanitized: \"menciona dor específica de explicabilidade do agente\"\n\nGabarito heuristics:\nH1: Fundador técnico em fase de produto - needs fundador_tecnico = 1. Lead has fundador_tecnico = 0, so conditions don't apply.\nH2: Dor específica em hipótese não validada - lead has menciona_dor = 1 and context mentions \"menciona dor específica de explicabilidade do agente\". The reasoned explicitly cites H2. So this heuristic IS invoked. No divergence.\nH3: Enterprise sem capacidade - needs segmento enterprise and faturamento > 1M/mês. Lead is \"infoprodutor\" with \"50k-500k\". Conditions don't apply.\nH4: Sinal forte com fit médio - needs \"pediu demo direta\" AND score objetivo B. The lead has sinal: \"form\" (not demo direta). Also we don't know the score objetivo from the data. Wait, the lead doesn't have a score objetivo field. But we can check if the condition applies based on visible fields. \"pediu demo direta\" - sinal is \"form\", not demo. So conditions don't apply.\nH5: Score baixo sem sinal compensatório - needs score objetivo C AND none of above apply. We don't know score objetivo, so inconclusive if condition applies. Wait, the instruction says \"Determine se as condições do heurístico se aplicam à decisão (com base nos campos disponíveis)\". We don't have score objetivo field in the lead, so we cannot determine if this applies.\nH6: Default por tier A - needs score objetivo A AND none above apply in opposite direction. We don't know score objetivo.\nH7: Default por tier B - needs score objetivo B AND none above apply. We don't know score objetivo.\n\nWait, let me reconsider. Should I check if the agent should have mentioned H6 or H7? If score objetivo is not available, the conditions of H6/H7 cannot be determined from the fields available. So they are inconclusive.\n\nBut wait, the did is \"priorizar\". H2 justifies \"priorizar\". Are there any other heuristics that the conditions apply to?\n\nLet me look more carefully. The lead has:\n- segmento: \"infoprodutor\"\n- faturamento_band: \"50k-500k\"\n- sinal: \"form\"\n\nH4 requires \"pediu demo direta\" - the lead has sinal \"form\", not demo. So H4 doesn't apply.\n\nWhat about H5, H6, H7? They all depend on \"score objetivo\" which is not present in the lead fields. So we can't determine if they apply.\n\nWait, but the decision's `out_of_scope` mentions \"faltou dado sobre maturidade do time pra avaliar capacidade de absorção\". This isn't about score objetivo.\n\nIs there any other heuristic? No.\n\nSo the only applicable heuristic is H2, which was explicitly invoked. Therefore, there are zero divergences.\n\nWait, let me double-check. Is there any heuristic that might apply based on the available data that wasn't invoked?\n\nH1: condição = fundador técnico AND fase de produto. fundador_tecnico = 0, so condition not met.\nH2: condição = menciona dor X que coincide com hipótese não validada. menciona_dor = 1, contexto mentions specific pain. Condition met. Invoked? Yes, explicitly in reasoned.\nH3: condição = segmento enterprise AND faturamento > R$ 1M/mês. Segmento is infoprodutor, faturamento is 50k-500k. Not met.\nH4: condição = pediu demo direta AND score objetivo é B. Sinal is \"form\", not demo. Not met (at least the first part is false).\nH5: condição = score objetivo é C AND nenhum dos heurísticos acima se aplica. Missing score objetivo. Cannot determine.\nH6: condição = score objetivo é A AND none above counter-trigger. Missing score objetivo. Cannot determine.\nH7: condição = score objetivo é B AND none above trigger. Missing score objetivo. Cannot determine.\n\nSo no divergences. The agent correctly identified H2 and applied it.\n\nWait, but I need to be careful. The instruction says \"Pra cada heurístico do gabarito: 1. Determine se as condições do heurístico se aplicam à decisão (com base nos campos disponíveis) 2. Se aplicam: o reasoned invocou esse heurístico explicitamente? 3. Se não invocou: registre divergência\"\n\nIf I cannot determine whether conditions apply (missing data), I should mark as inconclusive / not applicable. So indeed no divergences.\n\nBut let me think once more. Could H4 partially apply? The condition is \"Se o lead pediu demo direta AND score objetivo é B\". The sinal is \"form\" which is definitely not demo direta. So condition doesn't apply.\n\nCould there be an implicit default? H6 and H7 talk about default by tier, but since we don't know the tier, they are not applicable.\n\nWait, actually, as an auditor I should consider: did the agent miss any heuristic that IS applicable given the data? Let me re-read H1. \"Se o lead tem fundador técnico/CTO AND contexto-momento indica fase de produto\". fundador_tecnico is 0, so clearly not applicable.\n\nWhat about H5? \"Se score objetivo é C AND nenhum dos heurísticos acima se aplica\". Even though we don't know score objetivo, we know that H2 DOES apply. So if score were C, the second part (\"nenhum dos heurísticos acima se aplica\") would be false because H2 applies. Therefore H5 would not trigger regardless of score. But does this mean H5's conditions apply? The condition is a conjunction: score C AND none above apply. Since the second conjunct is false (H2 applies), the whole condition is false. So H5 does NOT apply. This is a valid determination based on available fields. So H5 is not applicable.\n\nSimilarly for H6: \"Se score objetivo é A AND nenhum heurístico acima dispara em sentido contrário (H3 enterprise)\". H3 doesn't apply (not enterprise). But are any of H1-H4 or H7 applicable in a way that would be \"sentido contrário\"? H2 applies in the direction of \"priorizar\". H6 says \"priorizar\" is the default for tier A, \"só inverter mediante motivo registrado\". Since H2 already says \"priorizar\", it's not in sentido contrário. But the condition requires score A. Without score A, H6 doesn't apply. So cannot determine.\n\nH7: requires score B. Cannot determine.\n\nSo indeed, only H2 is applicable and it was invoked.\n\nZero divergences.\n\nWait, is there any nuance about H6/H7 requiring us to know the score objetivo? The lead data doesn't include it, so we truly cannot check. However, sometimes in these audit tasks, we assume that if the score is not provided, maybe the agent should have computed it or it's irrelevant. But the instruction clearly says \"com base nos campos disponíveis\". So no score, no applicability.\n\nLet me produce the output with empty divergences.",
+                  "thinkingSignature": "reasoning_content"
+                },
+                {
+                  "type": "text",
+                  "text": "---RESULT_START---\n{\"divergences\": []}\n---RESULT_END---"
+                }
+              ],
+              "api": "openai-completions",
+              "provider": "cloudflare-workers-ai",
+              "model": "@cf/moonshotai/kimi-k2.6",
+              "usage": {
+                "input": 2531,
+                "output": 1836,
+                "cacheRead": 576,
+                "cacheWrite": 0,
+                "totalTokens": 4943,
+                "cost": {
+                  "input": 0.00240445,
+                  "output": 0.007344,
+                  "cacheRead": 0.00009216,
+                  "cacheWrite": 0,
+                  "total": 0.00984061
+                }
+              },
+              "stopReason": "stop",
+              "timestamp": 1778592574724,
+              "responseId": "id-1778592576718"
+            },
+            "source": "skill"
+          }
+        ],
+        "leafId": "1b0104ca",
+        "metadata": {},
+        "createdAt": "2026-05-12T13:29:34.719Z",
+        "updatedAt": "2026-05-12T13:30:00.000Z"
+      }
+    },
+    {
+      "id": "agent-session:[\"smoke-1778592566\",\"main-2026-05-12-agentic-e0d93372\"]",
+      "kind": "main",
+      "decision_id": null,
+      "updated_at": 1778592613376,
+      "data": {
+        "version": 2,
+        "entries": [
+          {
+            "type": "message",
+            "id": "d47031f6",
+            "parentId": null,
+            "timestamp": "2026-05-12T13:30:13.375Z",
+            "message": {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "You are running in headless mode with no human operator. Work autonomously — never ask questions, never wait for user input. Make your best judgment and proceed independently.\n\n# Auditoria agêntica de decisões\n\nVocê é o auditor-agentic. Use as tools disponíveis pra detectar divergências entre o reasoning do agente qualificador e o gabarito (answer key), classificar origem e propor ajustes.\n\n## Gabarito (answer key)\n\n# Gabarito — Fit Estratégico no Momento Atual\n\nHeurísticos no formato \"condição → ação, porque mecanismo\".\n\n## H1 — Fundador técnico em fase de produto\nSe o lead tem fundador técnico/CTO AND contexto-momento indica fase de produto,\n→ priorizar mesmo se score objetivo médio,\nporque feedback técnico de fundador acelera roadmap mais que receita marginal.\n\n## H2 — Dor específica em hipótese não validada\nSe o lead menciona dor X que coincide com hipótese não validada do produto,\n→ priorizar independente de tamanho,\nporque valor de aprendizado supera custo de oportunidade.\n\n## H3 — Enterprise sem capacidade\nSe o lead tem segmento enterprise (faturamento > R$ 1M/mês) AND capacidade atual não suporta,\n→ manter mesmo com score alto,\nporque vender sem entregar queima reputação.\n\n## H4 — Sinal forte com fit médio\nSe o lead pediu demo direta AND score objetivo é B,\n→ priorizar,\nporque sinal forte de intenção compensa fit médio em janela de aprendizado.\n\n## H5 — Score baixo sem sinal compensatório\nSe score objetivo é C AND nenhum dos heurísticos acima se aplica,\n→ descartar,\nporque custo de oportunidade do time supera valor esperado.\n\n## H6 — Default por tier A\nSe score objetivo é A AND nenhum heurístico acima dispara em sentido contrário (H3 enterprise),\n→ priorizar,\nporque o tier A já refletiu fit estrutural alto na rubrica determinística — só inverter mediante motivo registrado.\n\n## H7 — Default por tier B\nSe score objetivo é B AND nenhum heurístico acima dispara,\n→ manter,\nporque tier B é fit médio — manter mantém opcionalidade sem queimar capacidade.\n\n\n## Contexto-momento do qualificador\n\n\n\n## Buckets ativos com representantes amostrados\n\n### Bucket `descartar/C/1` — 1 decisões, 1 representantes auditáveis\n\n- decision_id: `d-1778592437432-5`\n  reasoned: \"descartar porque tier objetivo C → custo de oportunidade do time supera valor\"\n  out_of_scope: \"faltou dado sobre maturidade do time pra avaliar capacidade de absorção\"\n  lead: {\"segmento\":\"outro\",\"faturamento_band\":\"0-50k\",\"time_vendas\":\"solo\",\"ferramentas\":\"planilha\",\"sinal\":\"material\",\"fundador_tecnico\":0,\"menciona_dor\":0,\"contexto_livre_sanitized\":\"blogueiro testando ferramentas\"}\n\n### Bucket `priorizar/A/1` — 1 decisões, 1 representantes auditáveis\n\n- decision_id: `d-1778592437478-5`\n  reasoned: \"priorizar porque menciona dor específica em hipótese não validada → valor de aprendizado supera custo (H2)\"\n  out_of_scope: \"faltou dado sobre maturidade do time pra avaliar capacidade de absorção\"\n  lead: {\"segmento\":\"infoprodutor\",\"faturamento_band\":\"50k-500k\",\"time_vendas\":\"solo\",\"ferramentas\":\"crm\",\"sinal\":\"form\",\"fundador_tecnico\":0,\"menciona_dor\":1,\"contexto_livre_sanitized\":\"menciona dor específica de explicabilidade do agente\"}\n\n## Fluxo esperado\n\n1. Pra cada `decision_id` listado, chame `detect_divergences(decision_id)`. Faça em sequência, uma decisão por vez.\n2. Junte todas as divergências retornadas. Deduplique por `(heuristic_ignored, bucket_key)` — uma divergência por par.\n3. Pra cada divergência única, chame `classify_origin(decision_id, bucket_key, heuristic_ignored, evidence, severity)`.\n4. Se `target` retornar diferente de `inconclusive`, chame em seguida `suggest_adjustment(...mesmos args + target)`.\n5. Ao final, chame `summarize_patterns(divergences)` passando a lista deduplicada completa.\n6. Devolva o resultado no schema final: `divergences[]`, `classifications[]`, `patterns[]`, `cross_bucket_signal`.\n\nPrincípios: cite evidência literal do `reasoned`/`out_of_scope`; marque `inconclusive` quando faltar dado; não invoque tools redundantes.\nWhen complete, you MUST output your result between these exact delimiters conforming to this schema:\n\n```json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"divergences\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"decision_id\": {\n            \"type\": \"string\"\n          },\n          \"bucket_key\": {\n            \"type\": \"string\"\n          },\n          \"heuristic_ignored\": {\n            \"type\": \"string\"\n          },\n          \"evidence\": {\n            \"type\": \"string\"\n          },\n          \"severity\": {\n            \"enum\": [\n              \"low\",\n              \"med\",\n              \"high\"\n            ],\n            \"type\": \"string\"\n          }\n        },\n        \"required\": [\n          \"decision_id\",\n          \"bucket_key\",\n          \"heuristic_ignored\",\n          \"evidence\",\n          \"severity\"\n        ]\n      }\n    },\n    \"classifications\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"decision_id\": {\n            \"type\": \"string\"\n          },\n          \"heuristic_ignored\": {\n            \"type\": \"string\"\n          },\n          \"target\": {\n            \"anyOf\": [\n              {\n                \"enum\": [\n                  \"prompt-issue\",\n                  \"gabarito-stale\",\n                  \"criterio-faltando\",\n                  \"contexto-mudou\"\n                ],\n                \"type\": \"string\"\n              },\n              {\n                \"const\": \"inconclusive\"\n              }\n            ]\n          },\n          \"rationale\": {\n            \"type\": \"string\"\n          },\n          \"proposed_change\": {\n            \"anyOf\": [\n              {\n                \"type\": \"string\"\n              },\n              {\n                \"type\": \"null\"\n              }\n            ]\n          },\n          \"target_file\": {\n            \"anyOf\": [\n              {\n                \"type\": \"string\"\n              },\n              {\n                \"type\": \"null\"\n              }\n            ]\n          },\n          \"suggestion_rationale\": {\n            \"anyOf\": [\n              {\n                \"type\": \"string\"\n              },\n              {\n                \"type\": \"null\"\n              }\n            ]\n          }\n        },\n        \"required\": [\n          \"decision_id\",\n          \"heuristic_ignored\",\n          \"target\",\n          \"rationale\",\n          \"proposed_change\",\n          \"target_file\",\n          \"suggestion_rationale\"\n        ]\n      }\n    },\n    \"patterns\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"type\": {\n            \"enum\": [\n              \"mechanism-divergence\",\n              \"gabarito-stale\",\n              \"criterio-faltando\",\n              \"contexto-mudou\"\n            ],\n            \"type\": \"string\"\n          },\n          \"description\": {\n            \"type\": \"string\"\n          },\n          \"affected_buckets\": {\n            \"type\": \"array\",\n            \"items\": {\n              \"type\": \"string\"\n            }\n          },\n          \"inferred_decisions\": {\n            \"type\": \"number\"\n          },\n          \"confidence\": {\n            \"enum\": [\n              \"high\",\n              \"med\",\n              \"low\"\n            ],\n            \"type\": \"string\"\n          },\n          \"promotion_recommendation\": {\n            \"enum\": [\n              \"finding\",\n              \"wait\",\n              \"discard\"\n            ],\n            \"type\": \"string\"\n          }\n        },\n        \"required\": [\n          \"type\",\n          \"description\",\n          \"affected_buckets\",\n          \"inferred_decisions\",\n          \"confidence\",\n          \"promotion_recommendation\"\n        ]\n      }\n    },\n    \"cross_bucket_signal\": {\n      \"anyOf\": [\n        {\n          \"type\": \"string\"\n        },\n        {\n          \"type\": \"null\"\n        }\n      ]\n    }\n  },\n  \"required\": [\n    \"divergences\",\n    \"classifications\",\n    \"patterns\",\n    \"cross_bucket_signal\"\n  ]\n}\n```\n\nExample: (Object)\n---RESULT_START---\n{\"key\": \"value\"}\n---RESULT_END---\n\nExample: (String)\n---RESULT_START---\nHello, world!\n---RESULT_END---"
+                }
+              ],
+              "timestamp": 1778592566403
+            },
+            "source": "prompt"
+          },
+          {
+            "type": "message",
+            "id": "13bb40f2",
+            "parentId": "d47031f6",
+            "timestamp": "2026-05-12T13:30:13.375Z",
+            "message": {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "thinking",
+                  "thinking": "We need to run an audit on two decisions: d-1778592437432-5 and d-1778592437478-5.\n\nWe have the answer key (gabarito) and the decisions.\n\nLet's inspect carefully.\n\nDecision d-1778592437432-5:\nbucket: descartar/C/1\nreasoned: \"descartar porque tier objetivo C → custo de oportunidade do time supera valor\"\nout_of_scope: \"faltou dado sobre maturidade do time pra avaliar capacidade de absorção\"\nlead: {segmento: outro, faturamento_band: 0-50k, time_vendas: solo, ferramentas: planilha, sinal: material, fundador_tecnico: 0, menciona_dor: 0, ...}\n\nDecision d-1778592437478-5:\nbucket: priorizar/A/1\nreasoned: \"priorizar porque menciona dor específica em hipótese não validada → valor de aprendizado supera custo (H2)\"\nout_of_scope: \"faltou dado sobre maturidade do time pra avaliar capacidade de absorção\"\nlead: {segmento: infoprodutor, faturamento_band: 50k-500k, time_vendas: solo, ferramentas: crm, sinal: form, fundador_tecnico: 0, menciona_dor: 1, ...}\n\nWe need to call detect_divergences(decision_id) for each.\n\nLet's do those two calls.",
+                  "thinkingSignature": "reasoning_content"
+                },
+                {
+                  "type": "toolCall",
+                  "id": "functions.detect_divergences:0",
+                  "name": "detect_divergences",
+                  "arguments": {
+                    "decision_id": "d-1778592437432-5"
+                  }
+                },
+                {
+                  "type": "toolCall",
+                  "id": "functions.detect_divergences:1",
+                  "name": "detect_divergences",
+                  "arguments": {
+                    "decision_id": "d-1778592437478-5"
+                  }
+                }
+              ],
+              "api": "openai-completions",
+              "provider": "cloudflare-workers-ai",
+              "model": "@cf/moonshotai/kimi-k2.6",
+              "usage": {
+                "input": 4316,
+                "output": 393,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "totalTokens": 4709,
+                "cost": {
+                  "input": 0.004100199999999999,
+                  "output": 0.0015719999999999998,
+                  "cacheRead": 0,
+                  "cacheWrite": 0,
+                  "total": 0.005672199999999999
+                }
+              },
+              "stopReason": "toolUse",
+              "timestamp": 1778592566408,
+              "responseId": "id-1778592569215"
+            },
+            "source": "prompt"
+          },
+          {
+            "type": "message",
+            "id": "123ae533",
+            "parentId": "13bb40f2",
+            "timestamp": "2026-05-12T13:30:13.375Z",
+            "message": {
+              "role": "toolResult",
+              "toolCallId": "functions.detect_divergences:0",
+              "toolName": "detect_divergences",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "{\"decision_id\":\"d-1778592437432-5\",\"bucket_key\":\"descartar/C/1\",\"divergences\":[]}"
+                }
+              ],
+              "details": {
+                "customTool": "detect_divergences"
+              },
+              "isError": false,
+              "timestamp": 1778592600004
+            },
+            "source": "prompt"
+          },
+          {
+            "type": "message",
+            "id": "a3e16552",
+            "parentId": "123ae533",
+            "timestamp": "2026-05-12T13:30:13.375Z",
+            "message": {
+              "role": "toolResult",
+              "toolCallId": "functions.detect_divergences:1",
+              "toolName": "detect_divergences",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "{\"decision_id\":\"d-1778592437478-5\",\"bucket_key\":\"priorizar/A/1\",\"divergences\":[]}"
+                }
+              ],
+              "details": {
+                "customTool": "detect_divergences"
+              },
+              "isError": false,
+              "timestamp": 1778592600004
+            },
+            "source": "prompt"
+          },
+          {
+            "type": "message",
+            "id": "caaf8087",
+            "parentId": "a3e16552",
+            "timestamp": "2026-05-12T13:30:13.375Z",
+            "message": {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "thinking",
+                  "thinking": "The detect_divergences tool returned no divergences for either decision. Let's double-check manually if there are indeed no divergences, because the tool might have returned empty but maybe we should inspect more carefully.\n\nThe first decision: d-1778592437432-5. Bucket descartar/C/1. The agent reasoned: \"descartar porque tier objetivo C → custo de oportunidade do time supera valor\". The lead has score C presumably (bucket C), no strong signal. According to answer key H5: \"Se score objetivo é C AND nenhum dos heurísticos acima se aplicam, → descartar, porque custo de oportunidade do time supera valor esperado.\" That matches exactly. No divergences here.\n\nThe second decision: d-1778592437478-5. Bucket priorizar/A/1. The agent reasoned: \"priorizar porque menciona dor específica em hipótese não validada → valor de aprendizado supera custo (H2)\". The lead has menciona_dor:1, contexto livre mentions \"menciona dor específica de explicabilidade do agente\". H2 says: \"Se o lead menciona dor X que coincide com hipótese não validada do produto, → priorizar independente de tamanho, porque valor de aprendizado supera custo de oportunidade.\" That matches. No divergences.\n\nThus zero divergences across both.\n\nSince there are zero divergences, we should skip classify_origin and suggest_adjustment, call summarize_patterns with empty divergences list, and produce final output with empty divergences, empty classifications, patterns accordingly, cross_bucket_signal null.\n\nWait, but the instruction says: \"Use 1 vez ao final de cada run com TODAS as divergências detectadas. Detecta cross-bucket signal (mesmo heurístico ignorado em buckets estruturalmente distintos = problema sistêmico) e recomenda promoção a finding. Skip se zero divergências.\" So we should skip summarize_patterns if zero divergences.\n\nThus final output: divergences: [], classifications: [], patterns: [], cross_bucket_signal: null.\n\nLet's output accordingly, within the delimiters.",
+                  "thinkingSignature": "reasoning_content"
+                },
+                {
+                  "type": "text",
+                  "text": "---RESULT_START---\n{\n  \"divergences\": [],\n  \"classifications\": [],\n  \"patterns\": [],\n  \"cross_bucket_signal\": null\n}\n---RESULT_END---"
+                }
+              ],
+              "api": "openai-completions",
+              "provider": "cloudflare-workers-ai",
+              "model": "@cf/moonshotai/kimi-k2.6",
+              "usage": {
+                "input": 200,
+                "output": 527,
+                "cacheRead": 4608,
+                "cacheWrite": 0,
+                "totalTokens": 5335,
+                "cost": {
+                  "input": 0.00018999999999999998,
+                  "output": 0.002108,
+                  "cacheRead": 0.00073728,
+                  "cacheWrite": 0,
+                  "total": 0.00303528
+                }
+              },
+              "stopReason": "stop",
+              "timestamp": 1778592600005,
+              "responseId": "id-1778592600908"
+            },
+            "source": "prompt"
+          }
+        ],
+        "leafId": "caaf8087",
+        "metadata": {},
+        "createdAt": "2026-05-12T13:29:26.398Z",
+        "updatedAt": "2026-05-12T13:30:13.375Z"
+      }
+    }
+  ]
+}

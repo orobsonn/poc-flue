@@ -3,9 +3,6 @@ main = "dist/_entry.ts"
 compatibility_date = "2026-05-11"
 compatibility_flags = ["nodejs_compat"]
 
-[ai]
-binding = "AI"
-
 [[d1_databases]]
 binding = "DB"
 database_name = "auditor"

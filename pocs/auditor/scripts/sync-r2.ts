@@ -1,9 +1,20 @@
-import { readdir } from 'node:fs/promises';
+import { readdir, stat } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
-import { join, relative } from 'node:path';
+import { join, relative, resolve } from 'node:path';
 
 const REMOTE = process.argv.includes('--remote');
 const R2_BUCKET = 'auditor';
+
+/** @description Em dev local, `flue dev` roda do `dist/` (gotcha #1 do handover) — wrangler ataca `dist/.wrangler/state`. Detecta e usa cwd correto pra evitar sync no state errado. */
+async function resolveWranglerCwd(): Promise<string> {
+  if (REMOTE) return process.cwd();
+  const distState = resolve('dist/.wrangler/state');
+  try {
+    const s = await stat(distState);
+    if (s.isDirectory()) return resolve('dist');
+  } catch { /* dist/.wrangler/state inexistente, cai pra cwd atual */ }
+  return process.cwd();
+}
 
 type SyncSpec = {
   /** @description Diretório local relativo à raiz do POC. */
@@ -28,6 +39,10 @@ async function* walk(dir: string): AsyncGenerator<string> {
 
 /** @description Sincroniza skills + expected-reasoning + agents-config pro R2. Use --remote pra prod, omitir pra dev. */
 async function main(): Promise<void> {
+  const wranglerCwd = await resolveWranglerCwd();
+  if (wranglerCwd !== process.cwd()) {
+    console.log(`[sync-r2] dist/ detectado — usando cwd=${relative(process.cwd(), wranglerCwd) || '.'} pra atacar o state do dev`);
+  }
   let total = 0;
   for (const spec of SYNC_SPECS) {
     const files: string[] = [];
@@ -36,17 +51,18 @@ async function main(): Promise<void> {
     for (const file of files) {
       const rel = relative(spec.local, file);
       const r2Key = `${spec.prefix}/${rel}`;
+      const fileAbs = resolve(file);
       const args = [
         'wrangler',
         'r2',
         'object',
         'put',
         `${R2_BUCKET}/${r2Key}`,
-        `--file=${file}`,
+        `--file=${fileAbs}`,
         REMOTE ? '--remote' : '--local',
       ];
       console.log(`  → ${r2Key}`);
-      const result = spawnSync('npx', args, { stdio: 'inherit' });
+      const result = spawnSync('npx', args, { stdio: 'inherit', cwd: wranglerCwd });
       if (result.status !== 0) {
         throw new Error(`wrangler put falhou para ${r2Key} (exit ${result.status})`);
       }

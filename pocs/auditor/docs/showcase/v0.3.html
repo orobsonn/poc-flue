@@ -1,0 +1,1341 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Auditor v0.3 :: Field Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Geist+Mono:wght@300..700&family=Inter:wght@300..600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: dark;
+    --void: #0c0d10;
+    --surface: #15161a;
+    --surface-2: #1c1d22;
+    --bone: #e8e6e1;
+    --steel: #8a8d93;
+    --steel-dim: #5a5d63;
+    --phosphor: #c5f04a;
+    --phosphor-dim: #7d9a2a;
+    --phosphor-tint: rgba(197,240,74,0.06);
+    --phosphor-glow: rgba(197,240,74,0.18);
+    --carmim: #a3231a;
+    --carmim-tint: rgba(163,35,26,0.12);
+    --amber: #d4a015;
+    --amber-tint: rgba(212,160,21,0.12);
+    --rule: #2a2c30;
+    --rule-soft: #1f2024;
+    --mono: 'Geist Mono', ui-monospace, monospace;
+    --serif: 'Fraunces', Georgia, serif;
+    --sans: 'Inter', system-ui, sans-serif;
+  }
+  [data-theme="light"] {
+    color-scheme: light;
+    --void: #f5f2eb;
+    --surface: #ece8de;
+    --surface-2: #e2ddd0;
+    --bone: #1a1b1f;
+    --steel: #5a5d63;
+    --steel-dim: #9a9ea4;
+    --phosphor: #4a6710;
+    --phosphor-dim: #6b8a20;
+    --phosphor-tint: rgba(74,103,16,0.07);
+    --phosphor-glow: rgba(74,103,16,0.2);
+    --carmim: #8b1d15;
+    --carmim-tint: rgba(139,29,21,0.14);
+    --amber: #946d00;
+    --amber-tint: rgba(148,109,0,0.14);
+    --rule: #d4cfc2;
+    --rule-soft: #dfdac9;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: var(--void); color: var(--bone); height: 100%; }
+  body {
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.5;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; text-decoration: none; }
+
+  .app {
+    display: grid;
+    grid-template-rows: 56px 1fr;
+    height: 100vh;
+  }
+  .app-body {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    min-height: 0;
+  }
+
+  header.top {
+    border-bottom: 1px solid var(--rule);
+    background: var(--void);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 32px;
+    position: relative;
+    z-index: 10;
+  }
+  .brand {
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--bone);
+    letter-spacing: -0.01em;
+    display: inline-flex;
+    align-items: baseline;
+  }
+  .brand .caret { color: var(--phosphor); margin-right: 4px; }
+  .brand .uscore {
+    display: inline-block;
+    width: 9px;
+    height: 14px;
+    background: var(--phosphor);
+    margin-left: 2px;
+    animation: blink 1.1s steps(2, start) infinite;
+    vertical-align: -2px;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .crumbs {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--steel);
+    display: flex;
+    gap: 16px;
+    align-items: center;
+  }
+  .crumbs .sep { color: var(--steel-dim); }
+  .crumbs .now { color: var(--bone); }
+
+  .top-right {
+    margin-left: auto;
+    display: flex;
+    gap: 18px;
+    align-items: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--steel);
+    letter-spacing: 0.04em;
+  }
+  .top-right .stat { display: flex; align-items: baseline; gap: 8px; }
+  .top-right .stat b {
+    font-weight: 500;
+    color: var(--bone);
+    font-variant-numeric: tabular-nums;
+  }
+  .top-right .live-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--phosphor);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--phosphor-glow);
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.45; }
+  }
+  .theme-toggle {
+    background: transparent;
+    border: 1px solid var(--rule);
+    color: var(--bone);
+    padding: 4px 10px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: border-color 150ms, color 150ms;
+  }
+  .theme-toggle:hover { border-color: var(--phosphor); color: var(--phosphor); }
+
+  aside.runs {
+    border-right: 1px solid var(--rule);
+    background: var(--void);
+    overflow-y: auto;
+    min-height: 0;
+  }
+  .runs-head {
+    padding: 20px 22px 12px;
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--steel);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .runs-head .count { color: var(--phosphor); font-weight: 500; }
+  .runs-list { padding: 0 0 24px; }
+  .run-item {
+    display: block;
+    padding: 14px 22px;
+    cursor: pointer;
+    border-left: 2px solid transparent;
+    transition: background 150ms, border-color 150ms;
+    position: relative;
+  }
+  .run-item:hover { background: var(--surface); }
+  .run-item.active {
+    background: var(--surface);
+    border-left-color: var(--phosphor);
+  }
+  .run-item .row1 {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 6px;
+  }
+  .run-item .stage-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    color: var(--phosphor);
+    font-weight: 600;
+  }
+  .run-item .sev {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.16em;
+    padding: 2px 6px;
+    border: 1px solid currentColor;
+    text-transform: uppercase;
+  }
+  .run-item .sev.info { color: var(--phosphor-dim); }
+  .run-item .sev.critical { color: var(--carmim); background: var(--carmim-tint); }
+  .run-item .sev.warn { color: var(--amber); background: var(--amber-tint); }
+  .run-item .rid {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--bone);
+    margin-bottom: 4px;
+    letter-spacing: -0.01em;
+  }
+  .run-item.active .rid { color: var(--phosphor); }
+  .run-item .desc {
+    font-family: var(--sans);
+    font-size: 11px;
+    color: var(--steel);
+    line-height: 1.45;
+  }
+  .run-item .meta {
+    margin-top: 8px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--steel-dim);
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .run-item .meta span b {
+    color: var(--steel);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+  .run-section-label {
+    padding: 18px 22px 6px;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    color: var(--steel-dim);
+    text-transform: uppercase;
+    border-top: 1px solid var(--rule-soft);
+    margin-top: 4px;
+  }
+
+  main.pane {
+    overflow-y: auto;
+    min-height: 0;
+    padding: 32px 40px 64px;
+    background: var(--void);
+  }
+  .pane-head {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 24px;
+    align-items: end;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 32px;
+  }
+  .pane-eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--phosphor);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .pane-title {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-style: italic;
+    font-size: 42px;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    color: var(--bone);
+  }
+  .pane-title .rid {
+    font-family: var(--mono);
+    font-style: normal;
+    font-size: 22px;
+    color: var(--steel);
+    margin-left: 14px;
+    letter-spacing: 0;
+    font-weight: 400;
+  }
+  .pane-sub {
+    margin-top: 12px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--steel);
+  }
+  .pane-sub .sep { color: var(--steel-dim); margin: 0 8px; }
+  .pane-sub .val { color: var(--bone); }
+  .pane-sub .val.phos { color: var(--phosphor); }
+  .pane-head-right {
+    text-align: right;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--steel);
+    letter-spacing: 0.08em;
+  }
+  .pane-head-right .when {
+    color: var(--bone);
+    margin-top: 6px;
+    font-size: 13px;
+  }
+
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+  .kpi {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--steel);
+    margin-bottom: 12px;
+  }
+  .kpi-value {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: 40px;
+    line-height: 1;
+    color: var(--bone);
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+  }
+  .kpi-value .unit {
+    font-size: 14px;
+    color: var(--steel);
+    margin-left: 4px;
+    font-weight: 400;
+  }
+  .kpi-foot {
+    margin-top: 10px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--steel-dim);
+    letter-spacing: 0.04em;
+  }
+  .kpi.featured {
+    background: var(--phosphor-tint);
+    border-color: var(--phosphor-dim);
+  }
+  .kpi.featured .kpi-label { color: var(--phosphor); }
+  .kpi.alert {
+    border-color: var(--carmim);
+    background: var(--carmim-tint);
+  }
+  .kpi.alert .kpi-label { color: var(--carmim); }
+  .kpi.alert .kpi-value { color: var(--carmim); }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    margin-bottom: 24px;
+    overflow: hidden;
+  }
+  .panel-head {
+    padding: 14px 22px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--rule);
+    background: var(--surface-2);
+  }
+  .panel-head .title {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--bone);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .panel-head .title::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    background: var(--phosphor);
+    box-shadow: 0 0 6px var(--phosphor-glow);
+  }
+  .panel-head .meta {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--steel);
+  }
+  .panel-body { padding: 20px 22px 22px; }
+
+  .timeline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 4px 0;
+  }
+  .timeline-step {
+    flex: 0 0 auto;
+    background: var(--void);
+    border: 1px solid var(--rule);
+    padding: 6px 10px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--steel);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 150ms;
+  }
+  .timeline-step .idx { font-size: 9px; color: var(--steel-dim); }
+  .timeline-step.t-detect_divergences { color: var(--phosphor); border-color: var(--phosphor-dim); }
+  .timeline-step.t-classify_origin { color: var(--bone); border-color: var(--steel); }
+  .timeline-step.t-suggest_adjustment { color: var(--amber); border-color: var(--amber); }
+  .timeline-step.t-summarize_patterns { color: var(--bone); background: var(--phosphor-tint); border-color: var(--phosphor); }
+  .timeline-step.t-query_decision_log { color: var(--phosphor); background: var(--phosphor-tint); border-color: var(--phosphor-dim); }
+  .timeline-step.t-get_checkpoint { color: var(--bone); border-color: var(--rule); background: var(--surface-2); }
+  .timeline-step.t-read_r2 { color: var(--steel); border-color: var(--steel-dim); background: var(--surface-2); }
+  .timeline-step.t-read,
+  .timeline-step.t-write,
+  .timeline-step.t-bash { color: var(--steel-dim); border-color: var(--rule); }
+
+  .timeline-legend {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--rule);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px 20px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--steel);
+  }
+  .timeline-legend .lg { display: flex; align-items: center; gap: 6px; }
+  .timeline-legend .swatch { width: 10px; height: 10px; border: 1px solid currentColor; }
+  .timeline-legend .lg.detect { color: var(--phosphor); }
+  .timeline-legend .lg.suggest { color: var(--amber); }
+  .timeline-legend .lg.query { color: var(--phosphor); }
+  .timeline-legend .lg.classify,
+  .timeline-legend .lg.summarize,
+  .timeline-legend .lg.checkpoint { color: var(--bone); }
+  .timeline-legend .lg.read { color: var(--steel); }
+
+  .breakdown {
+    display: flex;
+    height: 32px;
+    background: var(--void);
+    border: 1px solid var(--rule);
+    margin-bottom: 16px;
+  }
+  .breakdown .seg {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--void);
+    font-weight: 600;
+    border-right: 1px solid var(--void);
+  }
+  .breakdown .seg:last-child { border-right: 0; }
+  .breakdown .seg.detect { background: var(--phosphor); }
+  .breakdown .seg.classify { background: var(--bone); }
+  .breakdown .seg.suggest { background: var(--amber); }
+  .breakdown .seg.query { background: var(--phosphor-dim); }
+  .breakdown .seg.summarize { background: var(--steel); }
+  .breakdown .seg.checkpoint { background: var(--steel-dim); }
+  .breakdown .seg.read { background: var(--rule); color: var(--steel); }
+  .breakdown-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0 16px;
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+  .breakdown-grid .it {
+    display: flex;
+    justify-content: space-between;
+    color: var(--steel);
+    padding: 6px 0;
+    border-bottom: 1px dashed var(--rule);
+  }
+  .breakdown-grid .it b {
+    color: var(--bone);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .buckets {
+    display: grid;
+    grid-template-columns: 180px 1fr 70px;
+    gap: 14px;
+    align-items: center;
+    padding: 6px 0;
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+  .buckets-name { color: var(--bone); }
+  .buckets-name.tranquilo { color: var(--steel-dim); }
+  .buckets-bar {
+    height: 14px;
+    background: var(--void);
+    border: 1px solid var(--rule);
+    position: relative;
+    overflow: hidden;
+  }
+  .buckets-bar-fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    background: var(--phosphor);
+    box-shadow: inset 0 0 0 1px var(--phosphor-dim);
+    transition: width 600ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .buckets-bar-fill.dim { background: var(--steel-dim); box-shadow: none; }
+  .buckets-count {
+    color: var(--bone);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+  .buckets-count .small { color: var(--steel-dim); margin-left: 4px; }
+  .buckets-empty {
+    padding: 24px 8px;
+    text-align: center;
+    color: var(--steel-dim);
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+
+  table.tbl {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+  table.tbl th, table.tbl td {
+    padding: 11px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  table.tbl th {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--steel);
+    font-weight: 500;
+    padding-top: 6px;
+    padding-bottom: 8px;
+    background: var(--surface-2);
+  }
+  table.tbl tr:last-child td { border-bottom: 0; }
+  table.tbl .bucket { color: var(--phosphor); white-space: nowrap; }
+  table.tbl .heur {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 13px;
+    color: var(--bone);
+  }
+  table.tbl .ev {
+    color: var(--steel);
+    font-style: italic;
+    max-width: 360px;
+    line-height: 1.5;
+  }
+  table.tbl .target {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 2px 8px;
+    border: 1px solid currentColor;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    display: inline-block;
+    color: var(--phosphor);
+    background: var(--phosphor-tint);
+  }
+  table.tbl .target.criteriofaltando { color: var(--amber); border-color: var(--amber); background: var(--amber-tint); }
+  table.tbl .target.inconclusive { color: var(--steel); border-color: var(--steel-dim); background: transparent; }
+  table.tbl .sev-pill {
+    display: inline-block;
+    padding: 2px 6px;
+    font-size: 9px;
+    border: 1px solid currentColor;
+    color: var(--bone);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+  table.tbl .empty td {
+    text-align: center;
+    color: var(--steel-dim);
+    padding: 28px;
+    font-style: italic;
+    font-family: var(--serif);
+    font-size: 14px;
+  }
+
+  .rationale {
+    background: var(--void);
+    border: 1px solid var(--phosphor-dim);
+    padding: 22px 24px;
+    position: relative;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.7;
+    color: var(--bone);
+    white-space: pre-wrap;
+  }
+  .rationale::before {
+    content: 'AGENT.RATIONALE';
+    position: absolute;
+    top: -9px;
+    left: 16px;
+    background: var(--phosphor);
+    color: var(--void);
+    padding: 2px 10px;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    font-weight: 700;
+  }
+  .rationale .hi {
+    background: var(--phosphor);
+    color: var(--void);
+    padding: 0 4px;
+    font-weight: 600;
+  }
+  .rationale .signal {
+    color: var(--phosphor);
+    background: var(--phosphor-tint);
+    border: 1px solid var(--phosphor-dim);
+    padding: 0 6px;
+    margin: 0 1px;
+    font-weight: 600;
+  }
+  .rationale .dim { color: var(--steel-dim); }
+  .rationale.missing {
+    border-color: var(--rule);
+    background: var(--surface);
+    color: var(--steel);
+    text-align: center;
+    font-style: italic;
+    font-family: var(--serif);
+    font-size: 14px;
+    padding: 28px;
+  }
+  .rationale.missing::before { display: none; }
+
+  table.cmp { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12px; }
+  table.cmp th, table.cmp td {
+    padding: 11px 14px;
+    text-align: right;
+    border-bottom: 1px solid var(--rule);
+    font-variant-numeric: tabular-nums;
+  }
+  table.cmp th:first-child, table.cmp td:first-child {
+    text-align: left;
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 13px;
+  }
+  table.cmp thead th {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--steel);
+    font-weight: 500;
+    padding: 8px 14px;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--rule);
+  }
+  table.cmp tbody tr.current { background: var(--phosphor-tint); }
+  table.cmp tbody tr.current td:first-child { color: var(--phosphor); }
+  table.cmp tbody tr.current td { color: var(--bone); font-weight: 500; }
+  table.cmp tbody tr.regressed td { color: var(--carmim); }
+  table.cmp tbody tr:last-child td { border-bottom: 0; }
+  table.cmp td.info { color: var(--phosphor-dim); }
+  table.cmp td.crit { color: var(--carmim); }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 1100px) {
+    .two-col { grid-template-columns: 1fr; }
+    .kpis { grid-template-columns: repeat(3, 1fr); }
+    .app-body { grid-template-columns: 280px 1fr; }
+  }
+  @media (max-width: 800px) {
+    .app-body { grid-template-columns: 1fr; }
+    aside.runs { display: none; }
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+    main.pane { padding: 20px 18px 40px; }
+    .pane-title { font-size: 28px; }
+  }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--rule); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--steel-dim); }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <a class="brand" href="#">
+      <span class="caret">&gt;</span>auditor<span class="uscore"></span>
+    </a>
+    <div class="crumbs">
+      <span>poc-flue</span><span class="sep">/</span>
+      <span>auditor</span><span class="sep">/</span>
+      <span class="now">v0.3 field dashboard</span>
+    </div>
+    <div class="top-right">
+      <div class="stat"><span class="live-dot"></span> 6 runs · stage 1—4</div>
+      <div class="stat">commit <b>8614657</b></div>
+      <button class="theme-toggle" id="themeToggle">☼ LIGHT</button>
+    </div>
+  </header>
+
+  <div class="app-body">
+    <aside class="runs">
+      <div class="runs-head">
+        <span>Field Runs</span>
+        <span class="count">6</span>
+      </div>
+      <div class="runs-list" id="runsList"></div>
+    </aside>
+    <main class="pane" id="pane"></main>
+  </div>
+</div>
+
+<script type="application/json" id="runs-data">
+{
+  "runs": [
+    {
+      "rid": "dd1f5400",
+      "full_id": "2026-05-13-stage4-dd1f5400",
+      "stage": 4,
+      "stage_label": "Stage 4",
+      "stage_desc": "Agente full — monitor ~30 linhas",
+      "ts": "2026-05-13T00:35:16.039Z",
+      "metrics": {
+        "severity": "info",
+        "divergences": 4,
+        "classifications": 4,
+        "candidates": 10,
+        "buckets_active": 1,
+        "latency_ms": 320275,
+        "llm_calls": 15,
+        "queries": 5,
+        "tool_calls": 23,
+        "reps_audited": 4
+      },
+      "buckets": {
+        "descartar/A/0": 1,
+        "descartar/A/1": 1,
+        "priorizar/C/0": 1,
+        "manter/B/1": 1
+      },
+      "tool_sequence": ["read","get_checkpoint","read","read","query_decision_log","detect_divergences","detect_divergences","detect_divergences","detect_divergences","detect_divergences","detect_divergences","read_r2","read_r2","classify_origin","classify_origin","classify_origin","classify_origin","suggest_adjustment","suggest_adjustment","suggest_adjustment","suggest_adjustment","query_decision_log","query_decision_log","query_decision_log","query_decision_log","summarize_patterns"],
+      "rationale": "Janela de ~1,3h desde o último checkpoint (fromTs=1778627450417). Filtro e bucketing padrão. Apenas descartar/A/0 atingiu min sample 5 (5 decisões); investiguei 3 buckets abaixo do threshold ad hoc.\n\nDetectei template idêntico ('descomprometimento na call') em 6/6 descartes tier-A da janela — padrão Sinal 6 que impede promoção a finding/critical por ser provável artefato de geração.\n\nAmostra pequena, patterns com confidence: low e promotion: wait. Severity: info.",
+      "divergences": [
+        { "decision_id": "d-...545-1", "bucket": "descartar/A/0", "heuristic": "H6 — Default por tier A", "evidence": "descartar mesmo tier A — interlocutor sinalizou descomprometimento na call", "severity": "high", "target": "prompt-issue" },
+        { "decision_id": "d-...769-5", "bucket": "priorizar/C/0", "heuristic": "H5 — Score baixo sem sinal compensatório", "evidence": "priorizar mesmo tier C — sinal forte de intenção compensa fit baixo", "severity": "high", "target": "prompt-issue" },
+        { "decision_id": "d-...763-3", "bucket": "descartar/A/1", "heuristic": "H6 — Default por tier A", "evidence": "descartar mesmo tier A — interlocutor sinalizou descomprometimento na call", "severity": "high", "target": "prompt-issue" },
+        { "decision_id": "d-...622-4", "bucket": "manter/B/1", "heuristic": "H4 — Sinal forte com fit médio", "evidence": "manter porque tier objetivo B → fit médio sem sinal compensatório", "severity": "high", "target": "prompt-issue" }
+      ]
+    },
+    {
+      "rid": "b61e842c",
+      "full_id": "2026-05-12-agentic-b61e842c",
+      "stage": 3,
+      "stage_label": "Stage 3 · pós-refino",
+      "stage_desc": "Severity vem do agente via SQL",
+      "ts": "2026-05-12T23:15:28.224Z",
+      "metrics": {
+        "severity": "info",
+        "divergences": 3,
+        "classifications": 3,
+        "candidates": 9,
+        "buckets_active": 1,
+        "latency_ms": 277823,
+        "llm_calls": 11,
+        "queries": 3,
+        "tool_calls": null,
+        "reps_audited": 3
+      },
+      "buckets": { "descartar/A/0": 3 },
+      "tool_sequence": ["read","read","detect_divergences","detect_divergences","detect_divergences","classify_origin","classify_origin","classify_origin","suggest_adjustment","suggest_adjustment","suggest_adjustment","suggest_adjustment","read","read","read","query_decision_log","query_decision_log","query_decision_log","summarize_patterns"],
+      "rationale": null,
+      "divergences": [
+        { "decision_id": "d-...545-1", "bucket": "descartar/A/0", "heuristic": "H6 — Default por tier A", "evidence": "descartar mesmo tier A — interlocutor sinalizou descomprometimento na call", "severity": "high", "target": "prompt-issue" },
+        { "decision_id": "d-...103-5", "bucket": "descartar/A/0", "heuristic": "H6 — Default por tier A", "evidence": "descartar mesmo tier A — interlocutor sinalizou descomprometimento na call", "severity": "high", "target": "prompt-issue" },
+        { "decision_id": "d-...142-6", "bucket": "descartar/A/0", "heuristic": "H1 — Fundador técnico em fase de produto", "evidence": "descartar mesmo tier A — interlocutor sinalizou descomprometimento na call", "severity": "high", "target": "prompt-issue" }
+      ]
+    },
+    {
+      "rid": "7c717ae4",
+      "full_id": "2026-05-12-agentic-7c717ae4",
+      "stage": 3,
+      "stage_label": "Stage 3 · pré-refino",
+      "stage_desc": "Falso positivo crítico — base pros refinos",
+      "ts": "2026-05-12T21:44:42.970Z",
+      "metrics": {
+        "severity": "critical",
+        "divergences": 5,
+        "classifications": 5,
+        "candidates": 9,
+        "buckets_active": 4,
+        "latency_ms": 647550,
+        "llm_calls": 19,
+        "queries": 3,
+        "tool_calls": null,
+        "reps_audited": 7
+      },
+      "buckets": { "descartar/A/0": 3, "priorizar/A/1": 2, "manter/B/1": 1, "descartar/C/1": 1 },
+      "tool_sequence": ["detect_divergences","detect_divergences","detect_divergences","detect_divergences","detect_divergences","detect_divergences","detect_divergences","classify_origin","classify_origin","classify_origin","classify_origin","classify_origin","suggest_adjustment","suggest_adjustment","suggest_adjustment","suggest_adjustment","suggest_adjustment","suggest_adjustment","read","read","read","query_decision_log","query_decision_log","query_decision_log","summarize_patterns"],
+      "rationale": null,
+      "divergences": [
+        { "decision_id": "d-...033-1", "bucket": "descartar/A/0", "heuristic": "H6 — Default por tier A", "evidence": "descartar mesmo tier A — interlocutor sinalizou descomprometimento na call", "severity": "high", "target": "criterio-faltando" },
+        { "decision_id": "d-...103-5", "bucket": "descartar/A/0", "heuristic": "H6 — Default por tier A", "evidence": "descartar mesmo tier A — interlocutor sinalizou descomprometimento na call", "severity": "high", "target": "prompt-issue" },
+        { "decision_id": "d-...142-6", "bucket": "descartar/A/0", "heuristic": "H1 — Fundador técnico em fase de produto", "evidence": "descartar mesmo tier A — interlocutor sinalizou descomprometimento na call", "severity": "high", "target": "prompt-issue" },
+        { "decision_id": "d-...106-7", "bucket": "priorizar/A/1", "heuristic": "H2 — Dor específica em hipótese não validada", "evidence": "priorizar porque fundador técnico em fase de produto → feedback acelera roadmap (H1)", "severity": "high", "target": "prompt-issue" },
+        { "decision_id": "d-...138-3", "bucket": "manter/B/1", "heuristic": "H4 — Sinal forte com fit médio", "evidence": "manter porque tier objetivo B → fit médio sem sinal compensatório", "severity": "high", "target": "prompt-issue" }
+      ]
+    },
+    {
+      "rid": "ab7e8b5d",
+      "full_id": "2026-05-12-agentic-ab7e8b5d",
+      "stage": 2,
+      "stage_label": "Stage 2",
+      "stage_desc": "Sampling agêntico (choose-representatives)",
+      "ts": "2026-05-12T14:37:11.510Z",
+      "metrics": {
+        "severity": "info",
+        "divergences": 4,
+        "classifications": 3,
+        "candidates": 10,
+        "buckets_active": 4,
+        "latency_ms": 705823,
+        "llm_calls": 18,
+        "queries": null,
+        "tool_calls": null,
+        "reps_audited": null
+      },
+      "buckets": {},
+      "tool_sequence": ["detect_divergences","detect_divergences","detect_divergences","detect_divergences","detect_divergences","detect_divergences","detect_divergences","detect_divergences","detect_divergences","classify_origin","classify_origin","classify_origin","classify_origin","classify_origin","suggest_adjustment","suggest_adjustment","suggest_adjustment","summarize_patterns"],
+      "rationale": null,
+      "divergences": []
+    },
+    {
+      "rid": "8c3622fd",
+      "full_id": "2026-05-12-agentic-8c3622fd",
+      "stage": 1,
+      "stage_label": "Stage 1",
+      "stage_desc": "Skills internas, bucketing imperativo",
+      "ts": "2026-05-12T17:44:21.100Z",
+      "metrics": {
+        "severity": "info",
+        "divergences": 2,
+        "classifications": 2,
+        "candidates": 10,
+        "buckets_active": 4,
+        "latency_ms": 728835,
+        "llm_calls": 14,
+        "queries": null,
+        "tool_calls": null,
+        "reps_audited": 9
+      },
+      "buckets": { "descartar/A/0": 3, "priorizar/A/1": 2, "descartar/C/1": 1, "priorizar/C/0": 3 },
+      "tool_sequence": ["read","detect_divergences","detect_divergences","detect_divergences","detect_divergences","detect_divergences","detect_divergences","detect_divergences","detect_divergences","detect_divergences","classify_origin","classify_origin","suggest_adjustment","suggest_adjustment","summarize_patterns","read","write","read"],
+      "rationale": null,
+      "divergences": []
+    },
+    {
+      "rid": "e0d93372",
+      "full_id": "2026-05-12-agentic-e0d93372",
+      "stage": 1,
+      "stage_label": "Stage 1 · sanity",
+      "stage_desc": "Run quase vazio — só pra validar fluxo",
+      "ts": "2026-05-12T13:30:13.420Z",
+      "metrics": {
+        "severity": "info",
+        "divergences": 0,
+        "classifications": 0,
+        "candidates": 2,
+        "buckets_active": 2,
+        "latency_ms": 47117,
+        "llm_calls": 2,
+        "queries": null,
+        "tool_calls": null,
+        "reps_audited": null
+      },
+      "buckets": {},
+      "tool_sequence": ["detect_divergences","detect_divergences"],
+      "rationale": null,
+      "divergences": []
+    }
+  ]
+}
+</script>
+
+<script>
+(() => {
+  'use strict';
+  const DATA = JSON.parse(document.getElementById('runs-data').textContent);
+
+  const TOOL_GROUPS = {
+    detect_divergences: { key: 'detect', label: 'detect' },
+    classify_origin:    { key: 'classify', label: 'classify' },
+    suggest_adjustment: { key: 'suggest', label: 'suggest' },
+    summarize_patterns: { key: 'summarize', label: 'summarize' },
+    query_decision_log: { key: 'query', label: 'query' },
+    get_checkpoint:     { key: 'checkpoint', label: 'checkpoint' },
+    read_r2:            { key: 'read', label: 'read_r2' },
+    read:               { key: 'read', label: 'read' },
+    write:              { key: 'read', label: 'write' },
+    bash:               { key: 'read', label: 'bash' },
+  };
+
+  const isTranquilo = (b) =>
+    b === 'priorizar/A/0' || b === 'manter/B/0' || b === 'descartar/C/0';
+
+  const fmtMs = (ms) => {
+    if (ms == null) return '—';
+    const s = Math.round(ms / 1000);
+    return `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, '0')}s`;
+  };
+  const fmtDate = (iso) => {
+    const d = new Date(iso);
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())} UTC`;
+  };
+
+  function el(tag, attrs, children) {
+    attrs = attrs || {};
+    children = children || [];
+    const node = document.createElement(tag);
+    for (const k of Object.keys(attrs)) {
+      const v = attrs[k];
+      if (v == null || v === false) continue;
+      if (k === 'class') node.className = v;
+      else if (k === 'dataset') {
+        for (const dk of Object.keys(v)) node.dataset[dk] = v[dk];
+      } else if (k === 'style') node.setAttribute('style', v);
+      else if (k === 'title') node.title = v;
+      else if (k === 'href') node.setAttribute('href', v);
+      else node.setAttribute(k, v);
+    }
+    const list = Array.isArray(children) ? children : [children];
+    for (const c of list) {
+      if (c == null || c === false) continue;
+      node.appendChild(typeof c === 'string' || typeof c === 'number'
+        ? document.createTextNode(String(c))
+        : c);
+    }
+    return node;
+  }
+  const clear = (node) => { while (node.firstChild) node.removeChild(node.firstChild); };
+
+  function renderRuns() {
+    const list = document.getElementById('runsList');
+    clear(list);
+    const sorted = [...DATA.runs].sort(
+      (a, b) => b.stage - a.stage || new Date(b.ts) - new Date(a.ts)
+    );
+    let lastStage = null;
+    for (const r of sorted) {
+      if (r.stage !== lastStage) {
+        list.appendChild(el('div', { class: 'run-section-label' }, `— Stage ${r.stage}`));
+        lastStage = r.stage;
+      }
+      const sev = r.metrics.severity;
+      const metaChildren = [
+        el('span', {}, [el('b', {}, String(r.metrics.divergences)), ' div']),
+        el('span', {}, [el('b', {}, fmtMs(r.metrics.latency_ms))]),
+        el('span', {}, [el('b', {}, String(r.metrics.llm_calls)), ' LLM']),
+      ];
+      if (r.metrics.queries != null) {
+        metaChildren.push(el('span', {}, [el('b', {}, String(r.metrics.queries)), ' SQL']));
+      }
+      const item = el('a', { class: 'run-item', dataset: { rid: r.rid } }, [
+        el('div', { class: 'row1' }, [
+          el('div', { class: 'stage-tag' }, r.stage_label),
+          el('span', { class: `sev ${sev}` }, sev),
+        ]),
+        el('div', { class: 'rid' }, r.rid),
+        el('div', { class: 'desc' }, r.stage_desc),
+        el('div', { class: 'meta' }, metaChildren),
+      ]);
+      item.addEventListener('click', () => selectRun(r.rid));
+      list.appendChild(item);
+    }
+  }
+
+  function buildTimeline(seq) {
+    return el(
+      'div',
+      { class: 'timeline' },
+      seq.map((t, i) => {
+        const g = TOOL_GROUPS[t] || { label: t };
+        return el(
+          'div',
+          { class: `timeline-step t-${t}`, title: `${i + 1}: ${t}` },
+          [el('span', { class: 'idx' }, String(i + 1).padStart(2, '0')), g.label]
+        );
+      })
+    );
+  }
+  function buildLegend() {
+    const items = [
+      { c: 'detect', t: 'detect_divergences' },
+      { c: 'classify', t: 'classify_origin' },
+      { c: 'suggest', t: 'suggest_adjustment' },
+      { c: 'query', t: 'query_decision_log' },
+      { c: 'summarize', t: 'summarize_patterns' },
+      { c: 'checkpoint', t: 'get_checkpoint' },
+      { c: 'read', t: 'read · read_r2' },
+    ];
+    return el('div', { class: 'timeline-legend' }, items.map(({ c, t }) =>
+      el('div', { class: `lg ${c}` }, [el('span', { class: 'swatch' }), t])
+    ));
+  }
+
+  function buildBreakdown(seq) {
+    const counts = {};
+    seq.forEach((t) => {
+      const k = (TOOL_GROUPS[t] || { key: 'read' }).key;
+      counts[k] = (counts[k] || 0) + 1;
+    });
+    const total = seq.length || 1;
+    const order = ['detect', 'classify', 'suggest', 'query', 'summarize', 'checkpoint', 'read'];
+    const labels = {
+      detect: 'detect_divergences',
+      classify: 'classify_origin',
+      suggest: 'suggest_adjustment',
+      query: 'query_decision_log',
+      summarize: 'summarize_patterns',
+      checkpoint: 'get_checkpoint',
+      read: 'read · write',
+    };
+    const bar = el('div', { class: 'breakdown' });
+    const grid = el('div', { class: 'breakdown-grid' });
+    for (const k of order) {
+      if (!counts[k]) continue;
+      const pct = (counts[k] / total) * 100;
+      bar.appendChild(el('div', { class: `seg ${k}`, style: `width:${pct}%` }, pct > 10 ? String(counts[k]) : ''));
+      grid.appendChild(el('div', { class: 'it' }, [
+        el('span', {}, labels[k]),
+        el('b', {}, String(counts[k])),
+      ]));
+    }
+    return el('div', {}, [bar, grid]);
+  }
+
+  function buildBuckets(buckets) {
+    const entries = Object.entries(buckets);
+    if (!entries.length) {
+      return el('div', { class: 'buckets-empty' }, '— sem dados de buckets neste run —');
+    }
+    const max = Math.max(...entries.map((e) => e[1]));
+    const wrap = el('div');
+    for (const [b, n] of entries) {
+      const pct = (n / max) * 100;
+      const tranquilo = isTranquilo(b);
+      wrap.appendChild(el('div', { class: 'buckets' }, [
+        el('div', { class: `buckets-name ${tranquilo ? 'tranquilo' : ''}` }, b),
+        el('div', { class: 'buckets-bar' }, [
+          el('div', { class: `buckets-bar-fill ${tranquilo ? 'dim' : ''}`, style: `width:${pct}%` }),
+        ]),
+        el('div', { class: 'buckets-count' }, [
+          String(n),
+          ' ',
+          el('span', { class: 'small' }, 'audit'),
+        ]),
+      ]));
+    }
+    return wrap;
+  }
+
+  function buildDivTable(divs) {
+    if (!divs.length) {
+      return el('table', { class: 'tbl' }, [
+        el('tbody', {}, [
+          el('tr', { class: 'empty' }, [el('td', { colspan: 5 }, '— sem divergências detectadas neste run —')]),
+        ]),
+      ]);
+    }
+    const thead = el('thead', {}, [el('tr', {}, [
+      el('th', {}, 'Bucket'),
+      el('th', {}, 'Heurístico ignorado'),
+      el('th', {}, 'Evidência (literal)'),
+      el('th', {}, 'Target'),
+      el('th', {}, 'Sev'),
+    ])]);
+    const tbody = el('tbody', {}, divs.map((d) => {
+      const targetCls = d.target.replace(/[^a-z]/g, '');
+      return el('tr', {}, [
+        el('td', { class: 'bucket' }, d.bucket),
+        el('td', { class: 'heur' }, d.heuristic),
+        el('td', { class: 'ev' }, `"${d.evidence}"`),
+        el('td', {}, [el('span', { class: `target ${targetCls}` }, d.target)]),
+        el('td', {}, [el('span', { class: 'sev-pill' }, d.severity)]),
+      ]);
+    }));
+    return el('table', { class: 'tbl' }, [thead, tbody]);
+  }
+
+  /* Token highlight via matchAll (avoids regex.exec) */
+  function buildRationale(text) {
+    if (!text) {
+      return el('div', { class: 'rationale missing' }, '— rationale do agente não disponível pra este stage —');
+    }
+    const wrap = el('div', { class: 'rationale' });
+    const rules = [
+      { re: /\(fromTs=\d+\)/g, cls: 'dim' },
+      { re: /'[^']+'/g, cls: 'hi' },
+      { re: /6\/6 descartes tier-A/g, cls: 'hi' },
+      { re: /Sinal \d+/g, cls: 'signal' },
+      { re: /confidence: low/g, cls: 'signal' },
+      { re: /promotion: wait/g, cls: 'signal' },
+      { re: /Severity: info/g, cls: 'signal' },
+    ];
+    const tokens = [];
+    for (const { re, cls } of rules) {
+      for (const m of text.matchAll(re)) {
+        tokens.push({ start: m.index, end: m.index + m[0].length, str: m[0], cls });
+      }
+    }
+    tokens.sort((a, b) => a.start - b.start);
+    const filtered = [];
+    let lastEnd = -1;
+    for (const t of tokens) {
+      if (t.start >= lastEnd) { filtered.push(t); lastEnd = t.end; }
+    }
+    let cursor = 0;
+    for (const t of filtered) {
+      if (t.start > cursor) wrap.appendChild(document.createTextNode(text.slice(cursor, t.start)));
+      wrap.appendChild(el('span', { class: t.cls }, t.str));
+      cursor = t.end;
+    }
+    if (cursor < text.length) wrap.appendChild(document.createTextNode(text.slice(cursor)));
+    return wrap;
+  }
+
+  function buildCompare(currentRid) {
+    const thead = el('thead', {}, [el('tr', {}, [
+      el('th', {}, 'Stage'),
+      el('th', {}, 'Sev'),
+      el('th', {}, 'Div'),
+      el('th', {}, 'Cand'),
+      el('th', {}, 'Buckets'),
+      el('th', {}, 'Latency'),
+      el('th', {}, 'LLM'),
+      el('th', {}, 'SQL'),
+      el('th', {}, 'Tools'),
+      el('th', {}, 'Run'),
+    ])]);
+    const tbody = el('tbody', {}, DATA.runs.map((r) => {
+      const m = r.metrics;
+      const isCurrent = r.rid === currentRid;
+      const cls = isCurrent ? 'current' : (m.severity === 'critical' ? 'regressed' : '');
+      const sevCls = m.severity === 'critical' ? 'crit' : 'info';
+      return el('tr', { class: cls }, [
+        el('td', {}, r.stage_label),
+        el('td', { class: sevCls }, m.severity),
+        el('td', {}, String(m.divergences)),
+        el('td', {}, String(m.candidates)),
+        el('td', {}, String(m.buckets_active)),
+        el('td', {}, fmtMs(m.latency_ms)),
+        el('td', {}, String(m.llm_calls)),
+        el('td', {}, m.queries != null ? String(m.queries) : '—'),
+        el('td', {}, m.tool_calls != null ? String(m.tool_calls) : '—'),
+        el('td', { style: 'font-family: var(--mono); color: var(--steel)' }, r.rid),
+      ]);
+    }));
+    return el('table', { class: 'cmp' }, [thead, tbody]);
+  }
+
+  function buildKpis(r) {
+    const m = r.metrics;
+    const sevAlert = m.severity === 'critical';
+    const sevExtra = sevAlert ? 'alert' : (r.rid === 'dd1f5400' ? 'featured' : '');
+    const lat = fmtMs(m.latency_ms);
+    const latParts = lat.split(' ');
+    return [
+      el('div', { class: `kpi ${sevExtra}` }, [
+        el('div', { class: 'kpi-label' }, 'Severity'),
+        el('div', { class: 'kpi-value', style: 'font-style:italic; font-size:32px;' }, m.severity),
+        el('div', { class: 'kpi-foot' }, sevAlert ? 'falso positivo — corrigido' : 'output do agente'),
+      ]),
+      el('div', { class: 'kpi' }, [
+        el('div', { class: 'kpi-label' }, 'Divergences'),
+        el('div', { class: 'kpi-value' }, String(m.divergences)),
+        el('div', { class: 'kpi-foot' }, `${m.classifications} classified · ${m.reps_audited == null ? '—' : m.reps_audited} reps audited`),
+      ]),
+      el('div', { class: 'kpi' }, [
+        el('div', { class: 'kpi-label' }, 'Latency'),
+        el('div', { class: 'kpi-value' }, [
+          latParts[0],
+          el('span', { class: 'unit' }, latParts[1] || ''),
+        ]),
+        el('div', { class: 'kpi-foot' }, 'wall clock total'),
+      ]),
+      el('div', { class: 'kpi' }, [
+        el('div', { class: 'kpi-label' }, 'LLM calls'),
+        el('div', { class: 'kpi-value' }, String(m.llm_calls)),
+        el('div', { class: 'kpi-foot' }, m.tool_calls != null ? `${m.tool_calls} tool calls (cap 50)` : 'pre-cap'),
+      ]),
+      el('div', { class: 'kpi' }, [
+        el('div', { class: 'kpi-label' }, 'SQL queries'),
+        el('div', { class: 'kpi-value' }, m.queries != null ? String(m.queries) : '—'),
+        el('div', { class: 'kpi-foot' }, m.queries != null ? 'cap 15/run' : 'tool indisponível neste stage'),
+      ]),
+    ];
+  }
+
+  function renderPane(rid) {
+    const r = DATA.runs.find((x) => x.rid === rid);
+    if (!r) return;
+    const m = r.metrics;
+    const pane = document.getElementById('pane');
+    clear(pane);
+
+    pane.appendChild(el('div', { class: 'pane-head' }, [
+      el('div', {}, [
+        el('div', { class: 'pane-eyebrow' }, `${r.stage_label} · ${r.stage_desc}`),
+        el('h1', { class: 'pane-title' }, [
+          'Run',
+          el('span', { class: 'rid' }, `/ ${r.rid}`),
+        ]),
+        el('div', { class: 'pane-sub' }, [
+          el('span', { class: 'val' }, r.full_id),
+          el('span', { class: 'sep' }, '·'),
+          'severity ',
+          el('span', { class: 'val phos' }, m.severity),
+          el('span', { class: 'sep' }, '·'),
+          `${m.candidates} candidates → ${m.buckets_active} bucket${m.buckets_active === 1 ? '' : 's'} ativo${m.buckets_active === 1 ? '' : 's'}`,
+        ]),
+      ]),
+      el('div', { class: 'pane-head-right' }, [
+        'EXECUTED',
+        el('div', { class: 'when' }, fmtDate(r.ts)),
+      ]),
+    ]));
+
+    pane.appendChild(el('div', { class: 'kpis' }, buildKpis(r)));
+
+    pane.appendChild(el('div', { class: 'panel' }, [
+      el('div', { class: 'panel-head' }, [
+        el('div', { class: 'title' }, 'Sequência de Tool Calls'),
+        el('div', { class: 'meta' }, `${r.tool_sequence.length} steps · ordem cronológica`),
+      ]),
+      el('div', { class: 'panel-body' }, [
+        buildTimeline(r.tool_sequence),
+        buildLegend(),
+      ]),
+    ]));
+
+    pane.appendChild(el('div', { class: 'two-col' }, [
+      el('div', { class: 'panel' }, [
+        el('div', { class: 'panel-head' }, [
+          el('div', { class: 'title' }, 'Distribuição por Tool'),
+          el('div', { class: 'meta' }, `${r.tool_sequence.length} calls`),
+        ]),
+        el('div', { class: 'panel-body' }, [buildBreakdown(r.tool_sequence)]),
+      ]),
+      el('div', { class: 'panel' }, [
+        el('div', { class: 'panel-head' }, [
+          el('div', { class: 'title' }, 'Reps Audited por Bucket'),
+          el('div', { class: 'meta' }, `buckets ativos: ${m.buckets_active}`),
+        ]),
+        el('div', { class: 'panel-body' }, [buildBuckets(r.buckets)]),
+      ]),
+    ]));
+
+    pane.appendChild(el('div', { class: 'panel' }, [
+      el('div', { class: 'panel-head' }, [
+        el('div', { class: 'title' }, 'Divergências Detectadas'),
+        el('div', { class: 'meta' }, `${m.divergences} achados · ${m.classifications} classificados`),
+      ]),
+      el('div', { class: 'panel-body', style: 'padding: 0 0 4px;' }, [
+        buildDivTable(r.divergences),
+      ]),
+    ]));
+
+    pane.appendChild(el('div', { class: 'panel' }, [
+      el('div', { class: 'panel-head' }, [
+        el('div', { class: 'title' }, 'Rationale do Agente'),
+        el('div', { class: 'meta' }, r.rationale ? 'output literal · campo `rationale`' : 'não disponível'),
+      ]),
+      el('div', { class: 'panel-body' }, [buildRationale(r.rationale)]),
+    ]));
+
+    pane.appendChild(el('div', { class: 'panel' }, [
+      el('div', { class: 'panel-head' }, [
+        el('div', { class: 'title' }, 'Comparativo Cross-Run'),
+        el('div', { class: 'meta' }, '6 runs · v0.3'),
+      ]),
+      el('div', { class: 'panel-body', style: 'padding: 0;' }, [buildCompare(rid)]),
+    ]));
+
+    document.querySelectorAll('.run-item').forEach((a) => {
+      a.classList.toggle('active', a.dataset.rid === rid);
+    });
+    pane.scrollTop = 0;
+  }
+
+  function selectRun(rid) {
+    renderPane(rid);
+    history.replaceState(null, '', `#${rid}`);
+  }
+
+  renderRuns();
+  const initial = window.location.hash.replace('#', '') || 'dd1f5400';
+  selectRun(initial);
+
+  const tt = document.getElementById('themeToggle');
+  tt.addEventListener('click', () => {
+    const cur = document.documentElement.getAttribute('data-theme');
+    const next = cur === 'light' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', next);
+    tt.textContent = next === 'light' ? '☾ DARK' : '☼ LIGHT';
+  });
+})();
+</script>
+</body>
+</html>
