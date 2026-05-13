@@ -12,3 +12,4 @@ dist/
 .claude/settings.local.json
 .claude/plans/current.md
 .claude/plans/*.local.md
+.claude/scheduled_tasks.lock
